@@ -1,0 +1,23 @@
+# Compiled binaries
+*.so
+*.dll
+*.dylib
+*.o
+*.obj
+
+# LuaRocks
+/lua_modules/
+/luarocks/
+.luarocks/
+manifest
+
+# Development environments
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Temporary files
+*.tmp
+*.log

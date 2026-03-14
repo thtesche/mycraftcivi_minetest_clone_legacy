@@ -160,4 +160,59 @@ minetest.register_globalstep(function(dtime)
     end
 end)
 
+-- =========================================================
+-- 5. BIOME-REGISTRIERUNG (für eine grüne Oberfläche)
+-- =========================================================
+
+minetest.register_biome({
+    name = "grassland",
+    node_top = "civi_core:dirt_with_grass",
+    depth_top = 1,
+    node_filler = "civi_core:dirt",
+    depth_filler = 3,
+    node_stone = "civi_core:stone",
+    node_water_top = "civi_core:water_source",
+    depth_water_top = 10,
+    y_min = 1,
+    y_max = 31000,
+    heat_point = 50,
+    humidity_point = 50,
+})
+
+-- Ein simpler Ozean-Biome für alles unter dem Meeresspiegel
+minetest.register_biome({
+    name = "ocean",
+    node_top = "civi_core:dirt",
+    depth_top = 1,
+    node_filler = "civi_core:dirt",
+    depth_filler = 3,
+    node_stone = "civi_core:stone",
+    node_water_top = "civi_core:water_source",
+    depth_water_top = 10,
+    y_min = -31000,
+    y_max = 0,
+    heat_point = 50,
+    humidity_point = 50,
+})
+
+-- =========================================================
+-- 6. ABBAUEN/MINING: Die Hand als Werkzeug registrieren
+-- =========================================================
+
+minetest.register_item(":", {
+    type = "none",
+    wield_image = "",
+    tool_capabilities = {
+        full_punch_interval = 0.9,
+        max_drop_level = 0,
+        groupcaps = {
+            crumbly = {times={[2]=3.00, [3]=0.70}, uses=0, maxlevel=1},
+            cracky  = {times={[3]=3.00}, uses=0, maxlevel=1},
+            snappy  = {times={[2]=0.80, [3]=0.40}, uses=0, maxlevel=1},
+            choppy  = {times={[3]=3.00}, uses=0, maxlevel=1},
+        },
+        damage_groups = {fleshy=1},
+    }
+})
+
 print("[myCraftCivi] civi_core erfolgreich geladen!")

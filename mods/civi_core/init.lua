@@ -46,7 +46,27 @@ local function safe_spawn(player)
     end)
 end
 
-minetest.register_on_newplayer(function(player)
+minetest.register_on_joinplayer(function(player)
+    -- Spieler-Modell und Aussehen konfigurieren
+    player:set_properties({
+        visual = "mesh",
+        mesh = "character.b3d",
+        textures = {"character.png"},
+        visual_size = {x = 1, y = 1},
+        collisionbox = {-0.3, 0.0, -0.3, 0.3, 1.7, 0.3},
+        stepheight = 0.6,
+        eye_height = 1.47,
+    })
+
+    -- Lokale Animationen für 1. Person (Arme beim Laufen etc.)
+    player:set_local_animation(
+        {x = 0,   y = 79},  -- stand
+        {x = 168, y = 187}, -- walk
+        {x = 189, y = 198}, -- mine
+        {x = 200, y = 219}, -- walk_mine
+        30 -- animation speed
+    )
+
     safe_spawn(player)
 end)
 
@@ -315,20 +335,100 @@ minetest.register_node("civi_core:asphalt", {
 })
 
 -- =========================================================
--- 4. SPEED-LOGIK: Schneller auf Asphalt
+-- 4. PLAYER-ANIMATIONEN UND SPEED
 -- =========================================================
+
+-- =========================================================
+-- 4. PLAYER-STAT-TRACKING UND GLOBALSTEP (Animationen & Speed)
+-- =========================================================
+
+local player_stats = {}
 
 minetest.register_globalstep(function(dtime)
     for _, player in ipairs(minetest.get_connected_players()) do
+        local name = player:get_player_name()
+        local stats = player_stats[name]
+        if not stats then
+            player_stats[name] = {
+                last_up = false,
+                last_press_time = 0,
+                is_sprinting = false,
+                current_speed = 1.0,
+                current_anim = "",
+            }
+            stats = player_stats[name]
+        end
+
         local pos = player:get_pos()
-        pos.y = pos.y - 0.5
-        local node = minetest.get_node_or_nil(pos)
+        local ctrl = player:get_player_control()
+        
+        -- 1. Double-Tap "W" Erkennung
+        if ctrl.up and not stats.last_up then
+            local now = minetest.get_us_time() / 1000000
+            if (now - stats.last_press_time) < 0.3 then
+                stats.is_sprinting = true
+            end
+            stats.last_press_time = now
+        end
+        stats.last_up = ctrl.up
+
+        -- Sprint-Abbruch
+        if not ctrl.up or ctrl.sneak then
+            stats.is_sprinting = false
+        end
+
+        -- 2. Geschwindigkeits-Berechnung
+        local base_speed = 1.0
+        local node_pos = {x = pos.x, y = pos.y - 0.5, z = pos.z}
+        local node = minetest.get_node_or_nil(node_pos)
         if node and node.name == "civi_core:asphalt" then
-            player:set_physics_override({speed = 1.8})
-        else
-            player:set_physics_override({speed = 1.0})
+            base_speed = 1.8
+        end
+
+        local final_speed = base_speed
+        if stats.is_sprinting then
+            final_speed = final_speed * 1.5
+        elseif ctrl.sneak then
+            final_speed = final_speed * 0.4
+        end
+
+        -- Nur Updaten wenn nötig
+        if final_speed ~= stats.current_speed then
+            player:set_physics_override({speed = final_speed})
+            stats.current_speed = final_speed
+        end
+
+        -- 3. Animations-Logik
+        local anim = "stand"
+        if ctrl.up or ctrl.down or ctrl.left or ctrl.right then
+            anim = "walk"
+        end
+        if ctrl.LMB then
+            anim = (anim == "walk") and "walk_mine" or "mine"
+        end
+
+        -- Animation-Frames und Geschwindigkeit
+        local anim_speed = 30 * final_speed
+        if anim == "stand" then anim_speed = 30 end
+
+        if stats.current_anim ~= anim or (anim ~= "stand" and math.abs(stats.last_anim_speed - anim_speed) > 5) then
+            if anim == "walk" then
+                player:set_animation({x = 168, y = 187}, anim_speed)
+            elseif anim == "mine" then
+                player:set_animation({x = 189, y = 198}, 30)
+            elseif anim == "walk_mine" then
+                player:set_animation({x = 200, y = 219}, anim_speed)
+            else
+                player:set_animation({x = 0, y = 79}, 30)
+            end
+            stats.current_anim = anim
+            stats.last_anim_speed = anim_speed
         end
     end
+end)
+
+minetest.register_on_leaveplayer(function(player)
+    player_stats[player:get_player_name()] = nil
 end)
 
 -- =========================================================

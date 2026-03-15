@@ -81,14 +81,115 @@ minetest.register_node("civi_core:dirt", {
 
 minetest.register_node("civi_core:dirt_with_grass", {
     description = "Erde mit Gras",
-    tiles = {"civi_grass.png", "civi_dirt.png", "civi_grass_side.png"},
+    tiles = {"civi_grass.png", "civi_dirt.png", {name = "civi_dirt.png^civi_grass_side.png", tileable_vertical = false}},
     groups = {crumbly = 3, soil = 1},
+})
+
+minetest.register_node("civi_core:sand", {
+    description = "Sand",
+    tiles = {"civi_sand.png"},
+    groups = {crumbly = 3, falling_node = 1, sand = 1},
+})
+
+minetest.register_node("civi_core:stone_with_coal", {
+    description = "Kohle-Erz",
+    tiles = {"civi_stone.png^civi_mineral_coal.png"},
+    groups = {cracky = 3},
+    drop = "civi_core:coal_lump",
+})
+minetest.register_craftitem("civi_core:coal_lump", {
+    description = "Kohle-Klumpen",
+    inventory_image = "civi_coal_lump.png",
+    groups = {coal = 1, flammable = 1}
+})
+
+minetest.register_node("civi_core:stone_with_iron", {
+    description = "Eisenerz",
+    tiles = {"civi_stone.png^civi_mineral_iron.png"},
+    groups = {cracky = 2},
+    drop = "civi_core:iron_lump",
+})
+
+minetest.register_craftitem("civi_core:iron_lump", {
+    description = "Eisen-Klumpen",
+    inventory_image = "civi_iron_lump.png",
+})
+
+minetest.register_node("civi_core:stone_with_copper", {
+    description = "Kupfererz",
+    tiles = {"civi_stone.png^civi_mineral_copper.png"},
+    groups = {cracky = 2},
+    drop = "civi_core:copper_lump",
+})
+
+minetest.register_craftitem("civi_core:copper_lump", {
+    description = "Kupfer-Klumpen",
+    inventory_image = "civi_copper_lump.png",
+})
+
+minetest.register_node("civi_core:stone_with_gold", {
+    description = "Golderz",
+    tiles = {"civi_stone.png^civi_mineral_gold.png"},
+    groups = {cracky = 2},
+    drop = "civi_core:gold_lump",
+})
+
+minetest.register_craftitem("civi_core:gold_lump", {
+    description = "Gold-Klumpen",
+    inventory_image = "civi_gold_lump.png",
+})
+
+minetest.register_node("civi_core:glass", {
+    description = "Glas",
+    drawtype = "glasslike",
+    tiles = {"civi_glass.png"},
+    paramtype = "light",
+    sunlight_propagates = true,
+    use_texture_alpha = "clip",
+    groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
+})
+
+minetest.register_node("civi_core:ice", {
+    description = "Eis",
+    tiles = {"civi_ice.png"},
+    is_ground_content = false,
+    paramtype = "light",
+    groups = {cracky = 3, slippery = 3},
+})
+
+minetest.register_node("civi_core:snowblock", {
+    description = "Schneeblock",
+    tiles = {"civi_snow.png"},
+    groups = {crumbly = 3, snowy = 1},
+})
+
+minetest.register_node("civi_core:snow", {
+    description = "Schnee",
+    drawtype = "nodebox",
+    tiles = {"civi_snow.png"},
+    paramtype = "light",
+    buildable_to = true,
+    node_box = {
+        type = "fixed",
+        fixed = {-0.5, -0.5, -0.5, 0.5, -0.25, 0.5},
+    },
+    groups = {crumbly = 3, falling_node = 1, snowy = 1},
 })
 
 minetest.register_node("civi_core:water_source", {
     description = "Wasser (stehend)",
     drawtype = "liquid",
-    tiles = {"civi_water.png"},
+    tiles = {
+        {
+            name = "civi_water.png",
+            animation = {
+                type = "vertical_frames",
+                aspect_w = 16,
+                aspect_h = 16,
+                length = 2.0,
+            },
+        },
+    },
     alpha = 160,
     paramtype = "light",
     walkable = false,
@@ -107,6 +208,28 @@ minetest.register_node("civi_core:water_flowing", {
     description = "Wasser (fließend)",
     drawtype = "flowingliquid",
     tiles = {"civi_water.png"},
+    special_tiles = {
+        {
+            name = "civi_water.png",
+            backface_culling = false,
+            animation = {
+                type = "vertical_frames",
+                aspect_w = 16,
+                aspect_h = 16,
+                length = 0.8,
+            },
+        },
+        {
+            name = "civi_water.png",
+            backface_culling = false,
+            animation = {
+                type = "vertical_frames",
+                aspect_w = 16,
+                aspect_h = 16,
+                length = 0.8,
+            },
+        },
+    },
     alpha = 160,
     paramtype = "light",
     paramtype2 = "flowingliquid",
@@ -120,7 +243,6 @@ minetest.register_node("civi_core:water_flowing", {
     liquid_alternative_source = "civi_core:water_source",
     liquid_viscosity = 1,
     groups = {water = 3, liquid = 3, not_in_creative_inventory = 1},
-    special_tiles = {{name = "civi_water.png", backface_culling = false}},
 })
 
 -- =========================================================
@@ -132,6 +254,55 @@ minetest.register_alias("mapgen_stone",          "civi_core:stone")
 minetest.register_alias("mapgen_dirt",           "civi_core:dirt")
 minetest.register_alias("mapgen_dirt_with_grass","civi_core:dirt_with_grass")
 minetest.register_alias("mapgen_water_source",   "civi_core:water_source")
+minetest.register_alias("mapgen_sand",           "civi_core:sand")
+minetest.register_alias("mapgen_ice",            "civi_core:ice")
+minetest.register_alias("mapgen_snowblock",      "civi_core:snowblock")
+minetest.register_alias("mapgen_snow",           "civi_core:snow")
+
+-- Erz-Generierung
+minetest.register_ore({
+    ore_type       = "scatter",
+    ore            = "civi_core:stone_with_coal",
+    wherein        = "civi_core:stone",
+    clust_scarcity = 8 * 8 * 8,
+    clust_num_ores = 8,
+    clust_size     = 3,
+    y_max          = 31000,
+    y_min          = -31000,
+})
+
+minetest.register_ore({
+    ore_type       = "scatter",
+    ore            = "civi_core:stone_with_iron",
+    wherein        = "civi_core:stone",
+    clust_scarcity = 9 * 9 * 9,
+    clust_num_ores = 12,
+    clust_size     = 3,
+    y_max          = 31000,
+    y_min          = -31000,
+})
+
+minetest.register_ore({
+    ore_type       = "scatter",
+    ore            = "civi_core:stone_with_copper",
+    wherein        = "civi_core:stone",
+    clust_scarcity = 12 * 12 * 12,
+    clust_num_ores = 4,
+    clust_size     = 3,
+    y_max          = 31000,
+    y_min          = -31000,
+})
+
+minetest.register_ore({
+    ore_type       = "scatter",
+    ore            = "civi_core:stone_with_gold",
+    wherein        = "civi_core:stone",
+    clust_scarcity = 15 * 15 * 15,
+    clust_num_ores = 3,
+    clust_size     = 2,
+    y_max          = 0,
+    y_min          = -31000,
+})
 
 -- =========================================================
 -- 3. DER ASPHALT-BLOCK (Kern-Feature)

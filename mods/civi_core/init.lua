@@ -4,68 +4,6 @@
 print("[myCraftCivi] Loading civi_core...")
 
 -- =========================================================
--- UI FUNCTIONS: Formspec & HUD
--- =========================================================
-
-local inventory_pages = {}
-
-local function get_inv_fs(player)
-    local name = player:get_player_name()
-    local meta = player:get_meta()
-    local page = inventory_pages[name] or "craft"
-    local has_ach = meta:get_int("civi_core:ach_hunter_gatherer") == 1
-    
-    local fs = "formspec_version[4]" ..
-               "size[10,10]" ..
-               "background9[0,0;10,10;civi_gui_bg.png;true;10]" ..
-               "tabheader[0,0;sfinv_nav_tabs;Crafting,Recipes;" .. (page == "craft" and 1 or 2) .. ";true;false]"
-    
-    if page == "craft" then
-        fs = fs .. 
-               "label[1.5,0.7;Crafting Grid:]" ..
-               "list[current_player;craft;1.5,1.2;3,3;]" ..
-               "image[4.75,2.2;1,1;civi_gui_arrow.png]" ..
-               "label[6.0,0.7;Result:]" ..
-               "list[current_player;craftpreview;6.0,2.2;1,1;]"
-        
-        -- Permanent Recipe Hint on the Crafting page
-        if has_ach then
-            fs = fs ..
-                   "label[1.5,4.5;Recipe Hint: Stick (3x Leaves Diagonal)]" ..
-                   "item_image[7.5,1.2;1,1;civi_core:stick]"
-        end
-    else
-        -- Dedicated Recipe Page
-        fs = fs ..
-               "label[0.5,0.5;Known Recipes:]" ..
-               "item_image[0.5,1.2;1,1;civi_core:leaves]" ..
-               "item_image[1.5,2.2;1,1;civi_core:leaves]" ..
-               "item_image[2.5,3.2;1,1;civi_core:leaves]" ..
-               "image[4.0,2.2;1,1;civi_gui_arrow.png]" ..
-               "item_image[5.5,2.2;1,1;civi_core:stick]" ..
-               "label[0.5,4.5;Required: 3x Leaves in a diagonal line (bottom-left to top-right)]"
-    end
-
-    -- Player Inventory (Standardized spacing, start lower to avoid overlap)
-    fs = fs ..
-               "label[0.5,5.2;Inventory:]" ..
-               "list[current_player;main;0.5,5.7;8,1;]" ..
-               "list[current_player;main;0.5,7.0;8,3;8]" ..
-               "listring[current_player;main]" ..
-               "listring[current_player;craft]"
-    
-    if has_ach then
-        fs = fs .. "image[8.7,0.5;1,1;civi_achievement_hunter.png^[makealpha:255,0,255]" ..
-                   "tooltip[8.7,0.5;1,1;Achievement: Hunter & Gatherer Unlocked!]"
-    end
-    return fs
-end
-
-local function update_hud(player)
-    -- HUD spear icon removed per user request (kept in inventory only)
-end
-
--- =========================================================
 -- SPAWN SYSTEM: Place player safely on the ground
 -- =========================================================
 
@@ -108,22 +46,6 @@ local function safe_spawn(player)
     end)
 end
 
-minetest.register_on_player_receive_fields(function(player, formname, fields)
-    if formname ~= "" then return end
-    
-    local name = player:get_player_name()
-    if fields.sfinv_nav_tabs then
-        local tid = tonumber(fields.sfinv_nav_tabs)
-        if tid == 1 then
-            inventory_pages[name] = "craft"
-        elseif tid == 2 then
-            inventory_pages[name] = "recipes"
-        end
-        player:set_inventory_formspec(get_inv_fs(player))
-        return true
-    end
-end)
-
 minetest.register_on_joinplayer(function(player)
     local name = player:get_player_name()
     -- Configure player model and appearance
@@ -144,10 +66,6 @@ minetest.register_on_joinplayer(function(player)
         inv:set_size("craft", 9)
         print("[myCraftCivi] Inventory & Crafting for " .. name .. " initialized")
     end
-
-    player:set_inventory_formspec(get_inv_fs(player))
-    update_hud(player)
-    print("[myCraftCivi] Formspec & HUD for " .. name .. " set")
 
 
     -- Local animations for 1st person (arms when walking etc.)
@@ -841,9 +759,10 @@ minetest.register_on_dignode(function(pos, oldnode, digger)
             -- Play sound
             minetest.sound_play("civi_achievement", {to_player = name, gain = 1.0})
             
-            -- UI & HUD immediately update
-            digger:set_inventory_formspec(get_inv_fs(digger))
-            update_hud(digger)
+            -- UI immediately update
+            if sfinv then
+                sfinv.set_player_inventory_formspec(digger)
+            end
         end
     end
 end)

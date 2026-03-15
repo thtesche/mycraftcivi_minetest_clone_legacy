@@ -1992,7 +1992,7 @@ on_joinplayer(function(player)
 	end
 end)
 
-on_receive_fields(function(player, formname, _f)
+local function field_handler(player, formname, _f)
 	if formname ~= "craftguide" then
 		return false
 	end
@@ -2107,7 +2107,9 @@ on_receive_fields(function(player, formname, _f)
 	end
 
 	return true, show_fs(player, name)
-end)
+end
+craftguide.field_handler = field_handler
+on_receive_fields(field_handler)
 
 local function on_use(user)
 	local name = user:get_player_name()
@@ -2511,3 +2513,28 @@ register_command("craft", {
 		return true, craftguide.show(name, node_name)
 	end,
 })
+
+if minetest.get_modpath("sfinv") then
+	sfinv.register_page("craftguide:recipes", {
+		title = S"Recipes",
+		get = function(self, player, context)
+			local name = player:get_player_name()
+			local data = pdata[name]
+			if not data then
+				init_data(name)
+				data = pdata[name]
+			end
+
+			local fs = make_fs(player, data)
+			-- Strip formspec header to fit inside sfinv's container.
+			local content = fs:gsub("^formspec_version%[%d-%]size%[[%d.,]-%]no_prepend%[%]bgcolor%[#%x-%]", "")
+			
+			return sfinv.make_formspec(player, context, content, false)
+		end,
+		on_player_receive_fields = function(self, player, context, fields)
+			if craftguide.field_handler(player, "craftguide", fields) then
+				sfinv.set_player_inventory_formspec(player)
+			end
+		end
+	})
+end

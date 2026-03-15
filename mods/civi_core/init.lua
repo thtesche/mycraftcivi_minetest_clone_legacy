@@ -1,32 +1,72 @@
 -- civi_core: init.lua
--- Standalone Luanti Game – kein minetest_game benötigt
+-- Standalone Luanti Game – no minetest_game required
 
-print("[myCraftCivi] Lade civi_core...")
+print("[myCraftCivi] Loading civi_core...")
 
 -- =========================================================
--- SPAWN-SYSTEM: Spieler sicher auf dem Boden platzieren
+-- UI FUNCTIONS: Formspec & HUD
+-- =========================================================
+
+local function get_inv_fs(player)
+    local name = player:get_player_name()
+    local meta = player:get_meta()
+    local has_ach = meta:get_int("civi_core:ach_hunter_gatherer") == 1
+    local fs = "formspec_version[4]" ..
+               "size[10,10]" ..
+               "background9[0,0;10,10;civi_gui_bg.png;true;10]" ..
+               
+               -- Crafting Grid (Shifted left: start at 0.5)
+               "label[0.5,0.5;Crafting Grid:]" ..
+               "list[current_player;craft;0.5,1;3,3;]" ..
+               
+               -- Result and Arrow (Aligned with middle row at Y=2)
+               "image[4.0,2.125;0.75,0.75;civi_gui_arrow.png]" ..
+               "label[5.25,1;Result:]" ..
+               "list[current_player;craftpreview;5.25,2;1,1;]" ..
+               
+               -- Player Inventory (8 wide, start at 0.5 -> ends at 8.5)
+               "label[0.5,4.5;Player Inventory:]" ..
+               "list[current_player;main;0.5,5;8,4;]" ..
+               
+               -- Listrings for smooth movement
+               "listring[current_player;main]" ..
+               "listring[current_player;craft]"
+    
+    if has_ach then
+        fs = fs .. "image[9.5,0.5;1,1;civi_achievement_hunter.png^[makealpha:255,0,255]" ..
+                   "tooltip[9.5,0.5;1,1;Achievement: Hunter & Gatherer]"
+    end
+    return fs
+end
+
+local function update_hud(player)
+    -- HUD spear icon removed per user request (kept in inventory only)
+end
+
+-- =========================================================
+-- SPAWN SYSTEM: Place player safely on the ground
 -- =========================================================
 
 local function find_ground(pos)
-    -- Nach unten suchen bis auf einen festen Block getroffen wird
+    -- Search down until a solid block is hit
     local p = {x = pos.x, y = pos.y, z = pos.z}
     for i = 1, 200 do
         p.y = pos.y - i
         local node = minetest.get_node_or_nil(p)
         if node and node.name ~= "air" and node.name ~= "ignore" and
            node.name ~= "civi_core:water_source" and node.name ~= "civi_core:water_flowing" then
-            return {x = p.x, y = p.y + 2, z = p.z}  -- 2 Blöcke über dem Boden
+            return {x = p.x, y = p.y + 2, z = p.z}  -- 2 blocks above ground
         end
     end
     return nil
 end
 
 local function safe_spawn(player)
-    -- Mapgen kurz warten lassen, dann Spawn-Position suchen
+    -- Wait for mapgen, then search for spawn position
     minetest.after(0.5, function()
         if not player or not player:is_valid() then return end
         local pos = player:get_pos()
-        -- Erzeuge Terrain an Spawn-Position
+        -- Emerge terrain at spawn position
         minetest.emerge_area(
             {x = pos.x - 16, y = pos.y - 64, z = pos.z - 16},
             {x = pos.x + 16, y = pos.y + 16, z = pos.z + 16},
@@ -37,7 +77,7 @@ local function safe_spawn(player)
                     if ground then
                         player:set_pos(ground)
                     else
-                        -- Fallback: Setze an bekannte sichere Höhe
+                        -- Fallback: Set to known safe height
                         player:set_pos({x = pos.x, y = 10, z = pos.z})
                     end
                 end)
@@ -48,7 +88,7 @@ end
 
 minetest.register_on_joinplayer(function(player)
     local name = player:get_player_name()
-    -- Spieler-Modell und Aussehen konfigurieren
+    -- Configure player model and appearance
     player:set_properties({
         visual = "mesh",
         mesh = "character.b3d",
@@ -59,63 +99,20 @@ minetest.register_on_joinplayer(function(player)
         eye_height = 1.47,
     })
 
-    -- Inventar-Größe und Start-Ausrüstung (8x4 Grid = 32 Slots)
+    -- Inventory size and starting equipment (8x4 Grid = 32 Slots)
     local inv = player:get_inventory()
     if inv then
         inv:set_size("main", 32)
-        print("[myCraftCivi] Inventar für " .. name .. " initialisiert (32 Slots)")
-    end
-
-    -- Custom Inventory Formspec (v4 für bessere Kompatibilität)
-    local function get_inv_fs(player)
-        local name = player:get_player_name()
-        local meta = player:get_meta()
-        local has_ach = meta:get_int("civi_core:ach_hunter_gatherer") == 1
-        
-        local fs = "formspec_version[4]" ..
-                   "size[13,9]" ..
-                   "background9[0,0;13,9;civi_gui_bg.png;true;10]" ..
-                   "label[1,0.5;Inventar]" ..
-                   "list[current_player;main;1,1;8,4;]" ..
-                   "label[9.5,0.5;Handwerk]" ..
-                   "list[current_player;craft;9.5,1;2,2;]" ..
-                   "list[current_player;craftpreview;10,3.5;1,1;]" ..
-                   "listring[current_player;main]" ..
-                   "listring[current_player;craft]"
-        
-        if has_ach then
-            fs = fs .. "image[9.5,5;1.5,1.5;civi_achievement_hunter.png]" ..
-                       "label[9.5,6.5;Jäger & Sammler]"
-        end
-        return fs
-    end
-
-    local function update_hud(player)
-        local meta = player:get_meta()
-        if meta:get_int("civi_core:ach_hunter_gatherer") == 1 then
-            -- Entferne alten HUD falls vorhanden (einfachheitshalber alle IDs durchprobieren oder Meta nutzen)
-            local id = meta:get_int("civi_core:hud_id")
-            if id ~= 0 then player:hud_remove(id) end
-            
-            local new_id = player:hud_add({
-                hud_elem_type = "image",
-                position = {x = 0.98, y = 0.05},
-                name = "Hunter Achievement",
-                scale = {x = 4, y = 4},
-                text = "civi_achievement_hunter.png",
-                alignment = {x = -1, y = 1},
-                offset = {x = 0, y = 0},
-            })
-            meta:set_int("civi_core:hud_id", new_id)
-        end
+        inv:set_size("craft", 9)
+        print("[myCraftCivi] Inventory & Crafting for " .. name .. " initialized")
     end
 
     player:set_inventory_formspec(get_inv_fs(player))
     update_hud(player)
-    print("[myCraftCivi] Formspec & HUD für " .. name .. " gesetzt.")
+    print("[myCraftCivi] Formspec & HUD for " .. name .. " set")
 
 
-    -- Lokale Animationen für 1. Person (Arme beim Laufen etc.)
+    -- Local animations for 1st person (arms when walking etc.)
     player:set_local_animation(
         {x = 0,   y = 79},  -- stand
         {x = 168, y = 187}, -- walk
@@ -129,7 +126,7 @@ end)
 
 minetest.register_on_respawnplayer(function(player)
     safe_spawn(player)
-    return true  -- true = wir übernehmen den Respawn selbst
+    return true  -- true = we handle the respawn ourselves
 end)
 
 -- Fallschaden deaktivieren (optional, zum Testen komfortabler)
@@ -145,26 +142,26 @@ end, true)
 -- =========================================================
 
 minetest.register_node("civi_core:stone", {
-    description = "Stein",
+    description = "Stone",
     tiles = {"civi_stone.png"},
     groups = {cracky = 3, stone = 1},
-    drop = "", -- Standardmäßig nichts (Händisch)
+    drop = "", -- Hand dug drops nothing
 })
 
 minetest.register_node("civi_core:cobble", {
-    description = "Bruchstein",
+    description = "Cobblestone",
     tiles = {"civi_cobble.png"},
     groups = {cracky = 3, stone = 1},
 })
 
 minetest.register_node("civi_core:dirt", {
-    description = "Erde",
+    description = "Dirt",
     tiles = {"civi_dirt.png"},
     groups = {crumbly = 3, soil = 1},
 })
 
 minetest.register_node("civi_core:dirt_with_grass", {
-    description = "Erde mit Gras",
+    description = "Dirt with Grass",
     tiles = {"civi_grass.png", "civi_dirt.png", {name = "civi_dirt.png^civi_grass_side.png", tileable_vertical = false}},
     groups = {crumbly = 3, soil = 1},
 })
@@ -176,55 +173,55 @@ minetest.register_node("civi_core:sand", {
 })
 
 minetest.register_node("civi_core:stone_with_coal", {
-    description = "Kohle-Erz",
+    description = "Coal Ore",
     tiles = {"civi_stone.png^civi_mineral_coal.png"},
     groups = {cracky = 3},
     drop = "civi_core:coal_lump",
 })
 minetest.register_craftitem("civi_core:coal_lump", {
-    description = "Kohle-Klumpen",
+    description = "Coal Lump",
     inventory_image = "civi_coal_lump.png",
     groups = {coal = 1, flammable = 1}
 })
 
 minetest.register_node("civi_core:stone_with_iron", {
-    description = "Eisenerz",
+    description = "Iron Ore",
     tiles = {"civi_stone.png^civi_mineral_iron.png"},
     groups = {cracky = 2},
     drop = "civi_core:iron_lump",
 })
 
 minetest.register_craftitem("civi_core:iron_lump", {
-    description = "Eisen-Klumpen",
+    description = "Iron Lump",
     inventory_image = "civi_iron_lump.png",
 })
 
 minetest.register_node("civi_core:stone_with_copper", {
-    description = "Kupfererz",
+    description = "Copper Ore",
     tiles = {"civi_stone.png^civi_mineral_copper.png"},
     groups = {cracky = 2},
     drop = "civi_core:copper_lump",
 })
 
 minetest.register_craftitem("civi_core:copper_lump", {
-    description = "Kupfer-Klumpen",
+    description = "Copper Lump",
     inventory_image = "civi_copper_lump.png",
 })
 
 minetest.register_node("civi_core:stone_with_gold", {
-    description = "Golderz",
+    description = "Gold Ore",
     tiles = {"civi_stone.png^civi_mineral_gold.png"},
     groups = {cracky = 2},
     drop = "civi_core:gold_lump",
 })
 
 minetest.register_craftitem("civi_core:gold_lump", {
-    description = "Gold-Klumpen",
+    description = "Gold Lump",
     inventory_image = "civi_gold_lump.png",
 })
 
 minetest.register_node("civi_core:glass", {
-    description = "Glas",
+    description = "Glass",
     drawtype = "glasslike",
     tiles = {"civi_glass.png"},
     paramtype = "light",
@@ -234,7 +231,7 @@ minetest.register_node("civi_core:glass", {
 })
 
 minetest.register_node("civi_core:ice", {
-    description = "Eis",
+    description = "Ice",
     tiles = {"civi_ice.png"},
     is_ground_content = false,
     paramtype = "light",
@@ -242,13 +239,13 @@ minetest.register_node("civi_core:ice", {
 })
 
 minetest.register_node("civi_core:snowblock", {
-    description = "Schneeblock",
+    description = "Snow Block",
     tiles = {"civi_snow.png"},
     groups = {crumbly = 3, snowy = 1},
 })
 
 minetest.register_node("civi_core:snow", {
-    description = "Schnee",
+    description = "Snow",
     drawtype = "nodebox",
     tiles = {"civi_snow.png"},
     paramtype = "light",
@@ -265,13 +262,13 @@ minetest.register_node("civi_core:snow", {
 -- =========================================================
 
 minetest.register_node("civi_core:tree", {
-    description = "Baumstamm (Holz)",
+    description = "Tree Trunk (Wood)",
     tiles = {"civi_tree_trunk_top.png", "civi_tree_trunk_top.png", "civi_tree_trunk.png"},
     groups = {tree = 1, choppy = 2, oddy_breakable_by_hand = 1, flammable = 2},
 })
 
 minetest.register_node("civi_core:leaves", {
-    description = "Blätter",
+    description = "Leaves",
     drawtype = "allfaces_optional",
     tiles = {"civi_leaves.png"},
     paramtype = "light",
@@ -290,7 +287,7 @@ minetest.register_node("civi_core:leaves", {
 })
 
 minetest.register_node("civi_core:sapling", {
-    description = "Setzling",
+    description = "Sapling",
     drawtype = "plantlike",
     tiles = {"civi_sapling.png"},
     inventory_image = "civi_sapling.png",
@@ -330,7 +327,7 @@ minetest.register_node("civi_core:sapling", {
 })
 
 minetest.register_node("civi_core:apple", {
-    description = "Apfel",
+    description = "Apple",
     drawtype = "plantlike",
     tiles = {"civi_apple.png"},
     inventory_image = "civi_apple.png",
@@ -347,7 +344,7 @@ minetest.register_node("civi_core:apple", {
 })
 
 minetest.register_node("civi_core:mushroom_brown", {
-    description = "Brauner Pilz",
+    description = "Brown Mushroom",
     drawtype = "plantlike",
     tiles = {"civi_mushroom_brown.png"},
     inventory_image = "civi_mushroom_brown.png",
@@ -360,7 +357,7 @@ minetest.register_node("civi_core:mushroom_brown", {
 })
 
 minetest.register_node("civi_core:mushroom_red", {
-    description = "Fliegenpilz (Giftig!)",
+    description = "Red Mushroom (Poisonous!)",
     drawtype = "plantlike",
     tiles = {"civi_mushroom_red.png"},
     inventory_image = "civi_mushroom_red.png",
@@ -373,7 +370,7 @@ minetest.register_node("civi_core:mushroom_red", {
 })
 
 minetest.register_node("civi_core:water_source", {
-    description = "Wasser (stehend)",
+    description = "Water Source",
     drawtype = "liquid",
     tiles = {
         {
@@ -401,7 +398,7 @@ minetest.register_node("civi_core:water_source", {
 })
 
 minetest.register_node("civi_core:water_flowing", {
-    description = "Wasser (fließend)",
+    description = "Flowing Water",
     drawtype = "flowingliquid",
     tiles = {"civi_water.png"},
     special_tiles = {
@@ -505,7 +502,7 @@ minetest.register_ore({
 -- =========================================================
 
 minetest.register_node("civi_core:asphalt", {
-    description = "Civi-Asphalt (Speed: 1.8x)",
+    description = "Civi Asphalt (Speed: 1.8x)",
     tiles = {"civi_asphalt.png"},
     groups = {cracky = 2, stone = 1},
 })
@@ -679,7 +676,7 @@ minetest.register_item(":", {
 })
 
 minetest.register_tool("civi_core:stick", {
-    description = "Primitiver Stock",
+    description = "Primitive Stick",
     inventory_image = "civi_stick.png",
     wield_image = "civi_stick.png",
     tool_capabilities = {
@@ -772,76 +769,52 @@ minetest.register_on_dignode(function(pos, oldnode, digger)
     local meta = digger:get_meta()
     local held = digger:get_wielded_item():get_name()
 
-    -- 1. Spezial-Drop für Stein
+    -- 1. Special Drop for Stone
     if oldnode.name == "civi_core:stone" then
         if held == "civi_core:stick" then
-            -- Mit Stock -> Bruchstein droppen
+            -- With Stick -> Drop Cobblestone
             local obj = minetest.add_item(pos, "civi_core:cobble")
             if obj then
                 obj:set_velocity({x = math.random(-1, 1), y = 2, z = math.random(-1, 1)})
             end
         end
-        -- Händisch (Leertaste/Kein Stock) -> Nichts (bereits durch drop="" definiert)
+        -- Hand dug (defined by drop="")
     end
 
-    -- 2. Errungenschafts-Tracking
-    if not meta:get_int("civi_core:ach_hunter_gatherer") then
-        -- Holz gesammelt?
+    -- 2. Achievement Tracking
+    if meta:get_int("civi_core:ach_hunter_gatherer") == 0 then
+        -- Wood collected?
         if oldnode.name == "civi_core:tree" then
             meta:set_int("civi_core:got_wood", 1)
         end
-        -- Nahrung gesammelt?
+        -- Food collected?
         if oldnode.name == "civi_core:apple" or 
            oldnode.name == "civi_core:mushroom_brown" or 
            oldnode.name == "civi_core:mushroom_red" then
             meta:set_int("civi_core:got_food", 1)
         end
 
-        -- Check ob beides erfüllt
+        -- Check if both requirements met
         if meta:get_int("civi_core:got_wood") == 1 and meta:get_int("civi_core:got_food") == 1 then
             meta:set_int("civi_core:ach_hunter_gatherer", 1)
-            minetest.chat_send_all("*** " .. name .. " hat die Errungenschaft 'Jäger & Sammler' erreicht!")
-            minetest.chat_send_player(name, "[System] Du kannst nun einen Stock aus Holz oder Blättern herstellen.")
+            minetest.chat_send_all("*** " .. name .. " unlocked the achievement 'Hunter & Gatherer'!")
+            minetest.chat_send_player(name, "[System] You can now craft a stick from wood or leaves.")
             
-            -- Sound abspielen
+            -- Play sound
             minetest.sound_play("civi_achievement", {to_player = name, gain = 1.0})
             
-            -- UI & HUD sofort aktualisieren
-            local fs = "formspec_version[4]" ..
-                       "size[13,9]" ..
-                       "background9[0,0;13,9;civi_gui_bg.png;true;10]" ..
-                       "label[1,0.5;Inventar]" ..
-                       "list[current_player;main;1,1;8,4;]" ..
-                       "label[9.5,0.5;Handwerk]" ..
-                       "list[current_player;craft;9.5,1;2,2;]" ..
-                       "list[current_player;craftpreview;10,3.5;1,1;]" ..
-                       "image[9.5,5;1.5,1.5;civi_achievement_hunter.png]" ..
-                       "label[9.5,6.5;Jäger & Sammler]" ..
-                       "listring[current_player;main]" ..
-                       "listring[current_player;craft]"
-            digger:set_inventory_formspec(fs)
-            
-            local hud_id = digger:hud_add({
-                hud_elem_type = "image",
-                position = {x = 0.98, y = 0.05},
-                name = "Hunter Achievement",
-                scale = {x = 4, y = 4},
-                text = "civi_achievement_hunter.png",
-                alignment = {x = -1, y = 1},
-                offset = {x = 0, y = 0},
-            })
-            meta:set_int("civi_core:hud_id", hud_id)
+            -- UI & HUD immediately update
+            digger:set_inventory_formspec(get_inv_fs(digger))
+            update_hud(digger)
         end
     end
 end)
 
--- Crafting Rezepte
+-- Crafting Recipes
 minetest.register_craft({
+    type = "shapeless",
     output = "civi_core:stick 2",
-    recipe = {
-        {"civi_core:leaves"},
-        {"civi_core:leaves"},
-    }
+    recipe = {"civi_core:leaves", "civi_core:leaves"},
 })
 
 minetest.register_craft({
@@ -851,33 +824,33 @@ minetest.register_craft({
     }
 })
 
--- Handwerks-Sperre: Stöcke erst nach Errungenschaft
+-- Crafting Lock: Sticks only after Achievement
 minetest.register_on_craft(function(itemstack, crafter, recipe, inventory)
     if itemstack:get_name() == "civi_core:stick" then
         local meta = crafter:get_meta()
         if meta:get_int("civi_core:ach_hunter_gatherer") ~= 1 then
             local name = crafter:get_player_name()
-            minetest.chat_send_player(name, "[System] Du musst erst 'Jäger & Sammler' werden (Holz abbauen & Frucht sammeln)!")
+            minetest.chat_send_player(name, "[System] You must become a 'Hunter & Gatherer' first (mine wood & gather food)!")
             return ItemStack("") -- Verhindert das Crafting
         end
     end
     return itemstack
 end)
 
-print("[myCraftCivi] civi_core erfolgreich geladen!")
+print("[myCraftCivi] civi_core successfully loaded!")
 -- Chat-Kommando als Fallback
 minetest.register_chatcommand("inv", {
-    description = "Öffnet das Inventar manuell",
+    description = "Opens the inventory manually",
     func = function(name)
         local p = minetest.get_player_by_name(name)
         if p then
             local fs = p:get_inventory_formspec()
             if fs == "" then
-                fs = "formspec_version[4]size[12,8]label[1,0.5;Inventar (Fallback)]list[current_player;main;1,1;8,4;]listring[current_player;main]"
+                fs = "formspec_version[4]size[12,8]label[1,0.5;Inventory (Fallback)]list[current_player;main;1,1;8,4;]listring[current_player;main]"
             end
             minetest.show_formspec(name, "civi_core:inventory", fs)
-            return true, "Inventar geöffnet."
+            return true, "Inventory opened."
         end
-        return false, "Spieler nicht gefunden."
+        return false, "Player not found."
     end,
 })

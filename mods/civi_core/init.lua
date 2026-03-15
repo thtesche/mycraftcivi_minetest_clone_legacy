@@ -196,6 +196,115 @@ minetest.register_node("civi_core:snow", {
     groups = {crumbly = 3, falling_node = 1, snowy = 1},
 })
 
+-- =========================================================
+-- BÄUME UND NAHRUNG
+-- =========================================================
+
+minetest.register_node("civi_core:tree", {
+    description = "Baumstamm (Holz)",
+    tiles = {"civi_tree_trunk_top.png", "civi_tree_trunk_top.png", "civi_tree_trunk.png"},
+    groups = {tree = 1, choppy = 2, oddy_breakable_by_hand = 1, flammable = 2},
+})
+
+minetest.register_node("civi_core:leaves", {
+    description = "Blätter",
+    drawtype = "allfaces_optional",
+    tiles = {"civi_leaves.png"},
+    paramtype = "light",
+    walkable = true,
+    climbable = false,
+    is_ground_content = false,
+    groups = {snappy = 3, leafdecay = 3, leaves = 1, flammable = 2},
+    drop = {
+        max_items = 1,
+        items = {
+            {items = {"civi_core:sapling"}, rarity = 20},
+            {items = {"civi_core:apple"}, rarity = 20},
+            {items = {"civi_core:leaves"}},
+        }
+    },
+})
+
+minetest.register_node("civi_core:sapling", {
+    description = "Setzling",
+    drawtype = "plantlike",
+    tiles = {"civi_sapling.png"},
+    inventory_image = "civi_sapling.png",
+    wield_image = "civi_sapling.png",
+    paramtype = "light",
+    sunlight_propagates = true,
+    walkable = false,
+    selection_box = {
+        type = "fixed",
+        fixed = {-3 / 16, -0.5, -3 / 16, 3 / 16, 0.5, 3 / 16}
+    },
+    groups = {snappy = 2, dig_immediate = 3, flammable = 2, sapling = 1, attached_node = 1},
+    on_place = function(itemstack, placer, pointed_thing)
+        if pointed_thing.type ~= "node" then
+            return itemstack
+        end
+        local pos_under = pointed_thing.under
+        local node_under = minetest.get_node(pos_under).name
+        
+        -- Erlaube Platzierung nur auf Erde, Gras oder Sand
+        if node_under == "civi_core:dirt" or 
+           node_under == "civi_core:dirt_with_grass" or 
+           node_under == "civi_core:sand" then
+            return minetest.item_place(itemstack, placer, pointed_thing)
+        end
+        
+        return itemstack
+    end,
+    on_construct = function(pos)
+        minetest.get_node_timer(pos):start(math.random(300, 1500))
+    end,
+    on_timer = function(pos)
+        minetest.place_schematic({x = pos.x - 3, y = pos.y - 1, z = pos.z - 3},
+            minetest.get_modpath("civi_core") .. "/schematics/apple_tree.mts", "random", nil, false)
+        return false
+    end,
+})
+
+minetest.register_node("civi_core:apple", {
+    description = "Apfel",
+    drawtype = "plantlike",
+    tiles = {"civi_apple.png"},
+    inventory_image = "civi_apple.png",
+    paramtype = "light",
+    sunlight_propagates = true,
+    walkable = false,
+    selection_box = {
+        type = "fixed",
+        fixed = {-3 / 16, -7 / 16, -3 / 16, 3 / 16, 4 / 16, 3 / 16}
+    },
+    groups = {fleshy = 3, dig_immediate = 3, flammable = 2, leafdecay = 3, food = 1},
+    on_place = minetest.item_eat(2),
+})
+
+minetest.register_node("civi_core:mushroom_brown", {
+    description = "Brauner Pilz",
+    drawtype = "plantlike",
+    tiles = {"civi_mushroom_brown.png"},
+    inventory_image = "civi_mushroom_brown.png",
+    paramtype = "light",
+    sunlight_propagates = true,
+    walkable = false,
+    groups = {snappy = 3, attached_node = 1, flammable = 1, food = 1},
+    on_place = minetest.item_eat(1),
+})
+
+minetest.register_node("civi_core:mushroom_red", {
+    description = "Fliegenpilz (Giftig!)",
+    drawtype = "plantlike",
+    tiles = {"civi_mushroom_red.png"},
+    inventory_image = "civi_mushroom_red.png",
+    paramtype = "light",
+    sunlight_propagates = true,
+    walkable = false,
+    groups = {snappy = 3, attached_node = 1, flammable = 1, food = 1},
+    on_place = minetest.item_eat(-5),
+})
+
 minetest.register_node("civi_core:water_source", {
     description = "Wasser (stehend)",
     drawtype = "liquid",
@@ -432,25 +541,10 @@ minetest.register_on_leaveplayer(function(player)
 end)
 
 -- =========================================================
--- 5. BIOME-REGISTRIERUNG (für eine grüne Oberfläche)
+-- 5. BIOME-REGISTRIERUNG (für Oberfläche, Ozean und Strände)
 -- =========================================================
 
-minetest.register_biome({
-    name = "grassland",
-    node_top = "civi_core:dirt_with_grass",
-    depth_top = 1,
-    node_filler = "civi_core:dirt",
-    depth_filler = 3,
-    node_stone = "civi_core:stone",
-    node_water_top = "civi_core:water_source",
-    depth_water_top = 10,
-    y_min = 1,
-    y_max = 31000,
-    heat_point = 50,
-    humidity_point = 50,
-})
-
--- Ein simpler Ozean-Biome für alles unter dem Meeresspiegel
+-- Ein Ozean-Biome für alles unter dem Meeresspiegel
 minetest.register_biome({
     name = "ocean",
     node_top = "civi_core:dirt",
@@ -461,7 +555,37 @@ minetest.register_biome({
     node_water_top = "civi_core:water_source",
     depth_water_top = 10,
     y_min = -31000,
-    y_max = 0,
+    y_max = -4,
+    heat_point = 50,
+    humidity_point = 50,
+})
+
+-- Ein Strand-Biome für den Übergang (Sand am Wasser)
+-- Deckt den Bereich von -3 bis 2 ab (3 unter Wasser, 2 über Wasser)
+minetest.register_biome({
+    name = "beach",
+    node_top = "civi_core:sand",
+    depth_top = 1,
+    node_filler = "civi_core:sand",
+    depth_filler = 3,
+    y_min = -3,
+    y_max = 2,
+    heat_point = 50,
+    humidity_point = 50,
+})
+
+-- Grasland für alles über dem Strand
+minetest.register_biome({
+    name = "grassland",
+    node_top = "civi_core:dirt_with_grass",
+    depth_top = 1,
+    node_filler = "civi_core:dirt",
+    depth_filler = 3,
+    node_stone = "civi_core:stone",
+    node_water_top = "civi_core:water_source",
+    depth_water_top = 10,
+    y_min = 3,
+    y_max = 31000,
     heat_point = 50,
     humidity_point = 50,
 })
@@ -480,10 +604,76 @@ minetest.register_item(":", {
             crumbly = {times={[2]=3.00, [3]=0.70}, uses=0, maxlevel=1},
             cracky  = {times={[3]=3.00}, uses=0, maxlevel=1},
             snappy  = {times={[2]=0.80, [3]=0.40}, uses=0, maxlevel=1},
-            choppy  = {times={[3]=3.00}, uses=0, maxlevel=1},
+            choppy  = {times={[2]=4.00, [3]=3.00}, uses=0, maxlevel=1},
         },
         damage_groups = {fleshy=1},
     }
 })
+
+-- =========================================================
+-- 7. MAPGEN DECORATIONS (Bäume & Pflanzen)
+-- =========================================================
+
+-- Aliase für Schematics (die Apple_tree.mts nutzt default:tree/leaves)
+minetest.register_alias("default:tree", "civi_core:tree")
+minetest.register_alias("default:leaves", "civi_core:leaves")
+minetest.register_alias("default:apple", "civi_core:apple")
+
+minetest.register_decoration({
+    name = "civi_core:apple_tree",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_grass"},
+    sidelen = 16,
+    noise_params = {
+        offset = 0.01,
+        scale = 0.01,
+        spread = {x = 100, y = 100, z = 100},
+        seed = 2,
+        octaves = 3,
+        persist = 0.66
+    },
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/apple_tree.mts",
+    flags = "place_center_x, place_center_z",
+})
+
+minetest.register_decoration({
+    name = "civi_core:mushroom_brown",
+    deco_type = "simple",
+    place_on = {"civi_core:dirt_with_grass"},
+    sidelen = 16,
+    noise_params = {
+        offset = 0,
+        scale = 0.005,
+        spread = {x = 100, y = 100, z = 100},
+        seed = 13,
+        octaves = 3,
+        persist = 0.66
+    },
+    y_max = 31000,
+    y_min = 1,
+    decoration = "civi_core:mushroom_brown",
+})
+
+minetest.register_decoration({
+    name = "civi_core:mushroom_red",
+    deco_type = "simple",
+    place_on = {"civi_core:dirt_with_grass"},
+    sidelen = 16,
+    noise_params = {
+        offset = 0,
+        scale = 0.002,
+        spread = {x = 100, y = 100, z = 100},
+        seed = 42,
+        octaves = 3,
+        persist = 0.66
+    },
+    y_max = 31000,
+    y_min = 1,
+    decoration = "civi_core:mushroom_red",
+})
+
+-- Die alte Strand-Dekoration wird durch das Biome ersetzt
 
 print("[myCraftCivi] civi_core erfolgreich geladen!")

@@ -47,6 +47,7 @@ local function safe_spawn(player)
 end
 
 minetest.register_on_joinplayer(function(player)
+    local name = player:get_player_name()
     -- Spieler-Modell und Aussehen konfigurieren
     player:set_properties({
         visual = "mesh",
@@ -57,6 +58,62 @@ minetest.register_on_joinplayer(function(player)
         stepheight = 0.6,
         eye_height = 1.47,
     })
+
+    -- Inventar-Größe und Start-Ausrüstung (8x4 Grid = 32 Slots)
+    local inv = player:get_inventory()
+    if inv then
+        inv:set_size("main", 32)
+        print("[myCraftCivi] Inventar für " .. name .. " initialisiert (32 Slots)")
+    end
+
+    -- Custom Inventory Formspec (v4 für bessere Kompatibilität)
+    local function get_inv_fs(player)
+        local name = player:get_player_name()
+        local meta = player:get_meta()
+        local has_ach = meta:get_int("civi_core:ach_hunter_gatherer") == 1
+        
+        local fs = "formspec_version[4]" ..
+                   "size[13,9]" ..
+                   "background9[0,0;13,9;civi_gui_bg.png;true;10]" ..
+                   "label[1,0.5;Inventar]" ..
+                   "list[current_player;main;1,1;8,4;]" ..
+                   "label[9.5,0.5;Handwerk]" ..
+                   "list[current_player;craft;9.5,1;2,2;]" ..
+                   "list[current_player;craftpreview;10,3.5;1,1;]" ..
+                   "listring[current_player;main]" ..
+                   "listring[current_player;craft]"
+        
+        if has_ach then
+            fs = fs .. "image[9.5,5;1.5,1.5;civi_achievement_hunter.png]" ..
+                       "label[9.5,6.5;Jäger & Sammler]"
+        end
+        return fs
+    end
+
+    local function update_hud(player)
+        local meta = player:get_meta()
+        if meta:get_int("civi_core:ach_hunter_gatherer") == 1 then
+            -- Entferne alten HUD falls vorhanden (einfachheitshalber alle IDs durchprobieren oder Meta nutzen)
+            local id = meta:get_int("civi_core:hud_id")
+            if id ~= 0 then player:hud_remove(id) end
+            
+            local new_id = player:hud_add({
+                hud_elem_type = "image",
+                position = {x = 0.98, y = 0.05},
+                name = "Hunter Achievement",
+                scale = {x = 4, y = 4},
+                text = "civi_achievement_hunter.png",
+                alignment = {x = -1, y = 1},
+                offset = {x = 0, y = 0},
+            })
+            meta:set_int("civi_core:hud_id", new_id)
+        end
+    end
+
+    player:set_inventory_formspec(get_inv_fs(player))
+    update_hud(player)
+    print("[myCraftCivi] Formspec & HUD für " .. name .. " gesetzt.")
+
 
     -- Lokale Animationen für 1. Person (Arme beim Laufen etc.)
     player:set_local_animation(
@@ -90,6 +147,13 @@ end, true)
 minetest.register_node("civi_core:stone", {
     description = "Stein",
     tiles = {"civi_stone.png"},
+    groups = {cracky = 3, stone = 1},
+    drop = "", -- Standardmäßig nichts (Händisch)
+})
+
+minetest.register_node("civi_core:cobble", {
+    description = "Bruchstein",
+    tiles = {"civi_cobble.png"},
     groups = {cracky = 3, stone = 1},
 })
 
@@ -278,6 +342,7 @@ minetest.register_node("civi_core:apple", {
         fixed = {-3 / 16, -7 / 16, -3 / 16, 3 / 16, 4 / 16, 3 / 16}
     },
     groups = {fleshy = 3, dig_immediate = 3, flammable = 2, leafdecay = 3, food = 1},
+    on_use = minetest.item_eat(2),
     on_place = minetest.item_eat(2),
 })
 
@@ -290,6 +355,7 @@ minetest.register_node("civi_core:mushroom_brown", {
     sunlight_propagates = true,
     walkable = false,
     groups = {snappy = 3, attached_node = 1, flammable = 1, food = 1},
+    on_use = minetest.item_eat(1),
     on_place = minetest.item_eat(1),
 })
 
@@ -302,6 +368,7 @@ minetest.register_node("civi_core:mushroom_red", {
     sunlight_propagates = true,
     walkable = false,
     groups = {snappy = 3, attached_node = 1, flammable = 1, food = 1},
+    on_use = minetest.item_eat(-5),
     on_place = minetest.item_eat(-5),
 })
 
@@ -596,7 +663,8 @@ minetest.register_biome({
 
 minetest.register_item(":", {
     type = "none",
-    wield_image = "",
+    wield_image = "civi_hand.png",
+    wield_scale = {x=1, y=1, z=2.5},
     tool_capabilities = {
         full_punch_interval = 0.9,
         max_drop_level = 0,
@@ -607,6 +675,23 @@ minetest.register_item(":", {
             choppy  = {times={[2]=4.00, [3]=3.00}, uses=0, maxlevel=1},
         },
         damage_groups = {fleshy=1},
+    }
+})
+
+minetest.register_tool("civi_core:stick", {
+    description = "Primitiver Stock",
+    inventory_image = "civi_stick.png",
+    wield_image = "civi_stick.png",
+    tool_capabilities = {
+        full_punch_interval = 0.8,
+        max_drop_level = 0,
+        groupcaps = {
+            crumbly = {times={[1]=1.5, [2]=1.0, [3]=0.5}, uses=20, maxlevel=1},
+            cracky  = {times={[3]=2.0}, uses=20, maxlevel=1},
+            snappy  = {times={[2]=0.5, [3]=0.2}, uses=20, maxlevel=1},
+            choppy  = {times={[2]=2.5, [3]=1.5}, uses=20, maxlevel=1},
+        },
+        damage_groups = {fleshy=2},
     }
 })
 
@@ -676,4 +761,123 @@ minetest.register_decoration({
 
 -- Die alte Strand-Dekoration wird durch das Biome ersetzt
 
+-- =========================================================
+-- 8. ERRUNGENSCHAFTEN & SPEZIAL-LOGIK
+-- =========================================================
+
+-- Fortschritt tracken und Stein-Drops beeinflussen
+minetest.register_on_dignode(function(pos, oldnode, digger)
+    if not digger or not digger:is_player() then return end
+    local name = digger:get_player_name()
+    local meta = digger:get_meta()
+    local held = digger:get_wielded_item():get_name()
+
+    -- 1. Spezial-Drop für Stein
+    if oldnode.name == "civi_core:stone" then
+        if held == "civi_core:stick" then
+            -- Mit Stock -> Bruchstein droppen
+            local obj = minetest.add_item(pos, "civi_core:cobble")
+            if obj then
+                obj:set_velocity({x = math.random(-1, 1), y = 2, z = math.random(-1, 1)})
+            end
+        end
+        -- Händisch (Leertaste/Kein Stock) -> Nichts (bereits durch drop="" definiert)
+    end
+
+    -- 2. Errungenschafts-Tracking
+    if not meta:get_int("civi_core:ach_hunter_gatherer") then
+        -- Holz gesammelt?
+        if oldnode.name == "civi_core:tree" then
+            meta:set_int("civi_core:got_wood", 1)
+        end
+        -- Nahrung gesammelt?
+        if oldnode.name == "civi_core:apple" or 
+           oldnode.name == "civi_core:mushroom_brown" or 
+           oldnode.name == "civi_core:mushroom_red" then
+            meta:set_int("civi_core:got_food", 1)
+        end
+
+        -- Check ob beides erfüllt
+        if meta:get_int("civi_core:got_wood") == 1 and meta:get_int("civi_core:got_food") == 1 then
+            meta:set_int("civi_core:ach_hunter_gatherer", 1)
+            minetest.chat_send_all("*** " .. name .. " hat die Errungenschaft 'Jäger & Sammler' erreicht!")
+            minetest.chat_send_player(name, "[System] Du kannst nun einen Stock aus Holz oder Blättern herstellen.")
+            
+            -- Sound abspielen
+            minetest.sound_play("civi_achievement", {to_player = name, gain = 1.0})
+            
+            -- UI & HUD sofort aktualisieren
+            local fs = "formspec_version[4]" ..
+                       "size[13,9]" ..
+                       "background9[0,0;13,9;civi_gui_bg.png;true;10]" ..
+                       "label[1,0.5;Inventar]" ..
+                       "list[current_player;main;1,1;8,4;]" ..
+                       "label[9.5,0.5;Handwerk]" ..
+                       "list[current_player;craft;9.5,1;2,2;]" ..
+                       "list[current_player;craftpreview;10,3.5;1,1;]" ..
+                       "image[9.5,5;1.5,1.5;civi_achievement_hunter.png]" ..
+                       "label[9.5,6.5;Jäger & Sammler]" ..
+                       "listring[current_player;main]" ..
+                       "listring[current_player;craft]"
+            digger:set_inventory_formspec(fs)
+            
+            local hud_id = digger:hud_add({
+                hud_elem_type = "image",
+                position = {x = 0.98, y = 0.05},
+                name = "Hunter Achievement",
+                scale = {x = 4, y = 4},
+                text = "civi_achievement_hunter.png",
+                alignment = {x = -1, y = 1},
+                offset = {x = 0, y = 0},
+            })
+            meta:set_int("civi_core:hud_id", hud_id)
+        end
+    end
+end)
+
+-- Crafting Rezepte
+minetest.register_craft({
+    output = "civi_core:stick 2",
+    recipe = {
+        {"civi_core:leaves"},
+        {"civi_core:leaves"},
+    }
+})
+
+minetest.register_craft({
+    output = "civi_core:stick 4",
+    recipe = {
+        {"civi_core:tree"},
+    }
+})
+
+-- Handwerks-Sperre: Stöcke erst nach Errungenschaft
+minetest.register_on_craft(function(itemstack, crafter, recipe, inventory)
+    if itemstack:get_name() == "civi_core:stick" then
+        local meta = crafter:get_meta()
+        if meta:get_int("civi_core:ach_hunter_gatherer") ~= 1 then
+            local name = crafter:get_player_name()
+            minetest.chat_send_player(name, "[System] Du musst erst 'Jäger & Sammler' werden (Holz abbauen & Frucht sammeln)!")
+            return ItemStack("") -- Verhindert das Crafting
+        end
+    end
+    return itemstack
+end)
+
 print("[myCraftCivi] civi_core erfolgreich geladen!")
+-- Chat-Kommando als Fallback
+minetest.register_chatcommand("inv", {
+    description = "Öffnet das Inventar manuell",
+    func = function(name)
+        local p = minetest.get_player_by_name(name)
+        if p then
+            local fs = p:get_inventory_formspec()
+            if fs == "" then
+                fs = "formspec_version[4]size[12,8]label[1,0.5;Inventar (Fallback)]list[current_player;main;1,1;8,4;]listring[current_player;main]"
+            end
+            minetest.show_formspec(name, "civi_core:inventory", fs)
+            return true, "Inventar geöffnet."
+        end
+        return false, "Spieler nicht gefunden."
+    end,
+})

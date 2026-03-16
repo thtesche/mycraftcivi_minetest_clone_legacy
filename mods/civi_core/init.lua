@@ -698,13 +698,6 @@ minetest.register_globalstep(function(dtime)
 
         local pos = player:get_pos()
         local ctrl = player:get_player_control()
-        
-        -- DEBUG: Flight info
-        -- local privs = minetest.get_player_privs(name)
-        -- if privs.fly and (ctrl.jump or ctrl.sneak) then
-        --    print("[DEBUG] Fly Active, Jump: " .. tostring(ctrl.jump) .. " Sneak: " .. tostring(ctrl.sneak))
-        -- end
-        
         -- 1. Double-Tap "W" Erkennung
         if ctrl.up and not stats.last_up then
             local now = minetest.get_us_time() / 1000000
@@ -863,6 +856,35 @@ minetest.register_tool("civi_core:pick_wood", {
     groups = {pickaxe = 1},
 })
 
+minetest.register_tool("civi_core:pick_stone", {
+    description = "Stone Pickaxe",
+    inventory_image = "civi_pick_stone.png",
+    tool_capabilities = {
+        full_punch_interval = 1.3,
+        max_drop_level = 0,
+        groupcaps = {
+            cracky = {times={[2]=2.0, [3]=1.00}, uses=20, maxlevel=1},
+        },
+        damage_groups = {fleshy=3},
+    },
+    groups = {pickaxe = 1},
+})
+
+minetest.register_tool("civi_core:axe_iron", {
+    description = "Iron Axe",
+    inventory_image = "civi_axe_iron.png",
+    tool_capabilities = {
+        full_punch_interval = 1.0,
+        max_drop_level = 1,
+        groupcaps = {
+            choppy = {times={[1]=2.50, [2]=1.40, [3]=1.00}, uses=20, maxlevel=2},
+            cracky = {times={[2]=2.0, [3]=1.0}, uses=20, maxlevel=2}, -- Added for Gold Ore mining as requested
+        },
+        damage_groups = {fleshy=4},
+    },
+    groups = {axe = 1},
+})
+
 minetest.register_craftitem("civi_core:stick", {
     description = "Stick",
     inventory_image = "civi_stick.png",
@@ -949,6 +971,16 @@ if minetest.get_modpath("awards") then
         title = "Hunter & Gatherer",
         description = "Mine wood and gather food to start your civilization.",
         icon = "civi_apple.png",
+    })
+    awards.register_award("civi_core:stone_age", {
+        title = "Stone Age",
+        description = "Craft a stone pickaxe to mine metal ores (Iron/Copper).",
+        icon = "civi_pick_stone.png",
+    })
+    awards.register_award("civi_core:iron_age", {
+        title = "Iron Age",
+        description = "Craft an iron axe to mine gold and process wood faster.",
+        icon = "civi_axe_iron.png",
     })
 end
 
@@ -1048,22 +1080,66 @@ minetest.register_craft({
 minetest.register_craft({
     output = "civi_core:pick_wood",
     recipe = {
-        {"", "civi_core:wood", "civi_core:wood"},
-        {"", "civi_core:stick", "civi_core:wood"},
-        {"civi_core:stick", "", ""},
+        {"civi_core:wood", "civi_core:wood", "civi_core:wood"},
+        {"", "civi_core:stick", ""},
+        {"", "civi_core:stick", ""},
     }
 })
 
--- Crafting Lock: Sticks only after Achievement
+minetest.register_craft({
+    output = "civi_core:pick_stone",
+    recipe = {
+        {"civi_core:cobble", "civi_core:cobble", "civi_core:cobble"},
+        {"", "civi_core:stick", ""},
+        {"", "civi_core:stick", ""},
+    }
+})
+
+minetest.register_craft({
+    output = "civi_core:axe_iron",
+    recipe = {
+        {"civi_core:iron_lump", "civi_core:iron_lump"},
+        {"civi_core:iron_lump", "civi_core:stick"},
+        {"", "civi_core:stick"},
+    }
+})
+
+-- Crafting Logic: Progress & Achievements
 minetest.register_on_craft(function(itemstack, crafter, recipe, inventory)
-    if itemstack:get_name() == "civi_core:stick" then
-        local meta = crafter:get_meta()
+    local name = itemstack:get_name()
+    local meta = crafter:get_meta()
+    local p_name = crafter:get_player_name()
+
+    -- 1. Progress Lock: Sticks only after Hunter & Gatherer
+    if name == "civi_core:stick" then
         if meta:get_int("civi_core:ach_hunter_gatherer") ~= 1 then
-            local name = crafter:get_player_name()
-            minetest.chat_send_player(name, "[System] You must become a 'Hunter & Gatherer' first (mine wood & gather food)!")
+            minetest.chat_send_player(p_name, "[System] You must become a 'Hunter & Gatherer' first (mine wood & gather food)!")
             return ItemStack("") -- Verhindert das Crafting
         end
     end
+
+    -- 2. Achievement Trigger: Stone Age
+    if name == "civi_core:pick_stone" then
+        if meta:get_int("civi_core:ach_stone_age") == 0 then
+            meta:set_int("civi_core:ach_stone_age", 1)
+            minetest.sound_play("civi_achievement", {to_player = p_name, gain = 1.0})
+            if minetest.get_modpath("awards") then
+                awards.unlock(p_name, "civi_core:stone_age")
+            end
+        end
+    end
+
+    -- 3. Achievement Trigger: Iron Age
+    if name == "civi_core:axe_iron" then
+        if meta:get_int("civi_core:ach_iron_age") == 0 then
+            meta:set_int("civi_core:ach_iron_age", 1)
+            minetest.sound_play("civi_achievement", {to_player = p_name, gain = 1.0})
+            if minetest.get_modpath("awards") then
+                awards.unlock(p_name, "civi_core:iron_age")
+            end
+        end
+    end
+
     return itemstack
 end)
 

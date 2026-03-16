@@ -320,8 +320,105 @@ minetest.register_node("civi_core:wood", {
 })
 
 -- =========================================================
--- 2. BÄUME & NATUR
+-- 2. BÄUME, NATUR & LICHT
 -- =========================================================
+
+-- Torch (based on minetest_game default:torch)
+local function torch_on_flood(pos, oldnode, newnode)
+    minetest.add_item(pos, ItemStack("civi_core:torch 1"))
+    return false
+end
+
+minetest.register_node("civi_core:torch", {
+    description = "Torch",
+    drawtype = "mesh",
+    mesh = "torch_floor.obj",
+    inventory_image = "civi_torch.png",
+    wield_image = "civi_torch.png",
+    tiles = {{
+        name = "civi_torch_animated.png",
+        animation = {type = "vertical_frames", aspect_w = 16, aspect_h = 16, length = 3.3}
+    }},
+    use_texture_alpha = "clip",
+    paramtype = "light",
+    paramtype2 = "wallmounted",
+    sunlight_propagates = true,
+    walkable = false,
+    light_source = 12,
+    groups = {choppy=2, dig_immediate=3, flammable=1, attached_node=1, torch=1},
+    drop = "civi_core:torch",
+    selection_box = {
+        type = "wallmounted",
+        wall_bottom = {-1/8, -1/2, -1/8, 1/8, 2/16, 1/8},
+    },
+    sounds = sounds.node_sound_wood_defaults(),
+    on_place = function(itemstack, placer, pointed_thing)
+        local under = pointed_thing.under
+        local above = pointed_thing.above
+        local wdir = minetest.dir_to_wallmounted(vector.subtract(under, above))
+        local fakestack = itemstack
+        if wdir == 0 then
+            fakestack:set_name("civi_core:torch_ceiling")
+        elseif wdir == 1 then
+            fakestack:set_name("civi_core:torch")
+        else
+            fakestack:set_name("civi_core:torch_wall")
+        end
+        itemstack = minetest.item_place(fakestack, placer, pointed_thing, wdir)
+        itemstack:set_name("civi_core:torch")
+        return itemstack
+    end,
+    floodable = true,
+    on_flood = torch_on_flood,
+})
+
+minetest.register_node("civi_core:torch_wall", {
+    drawtype = "mesh",
+    mesh = "torch_wall.obj",
+    tiles = {{
+        name = "civi_torch_animated.png",
+        animation = {type = "vertical_frames", aspect_w = 16, aspect_h = 16, length = 3.3}
+    }},
+    use_texture_alpha = "clip",
+    paramtype = "light",
+    paramtype2 = "wallmounted",
+    sunlight_propagates = true,
+    walkable = false,
+    light_source = 12,
+    groups = {choppy=2, dig_immediate=3, flammable=1, not_in_creative_inventory=1, attached_node=1, torch=1},
+    drop = "civi_core:torch",
+    selection_box = {
+        type = "wallmounted",
+        wall_side = {-1/2, -1/2, -1/8, -1/8, 1/8, 1/8},
+    },
+    sounds = sounds.node_sound_wood_defaults(),
+    floodable = true,
+    on_flood = torch_on_flood,
+})
+
+minetest.register_node("civi_core:torch_ceiling", {
+    drawtype = "mesh",
+    mesh = "torch_ceiling.obj",
+    tiles = {{
+        name = "civi_torch_animated.png",
+        animation = {type = "vertical_frames", aspect_w = 16, aspect_h = 16, length = 3.3}
+    }},
+    use_texture_alpha = "clip",
+    paramtype = "light",
+    paramtype2 = "wallmounted",
+    sunlight_propagates = true,
+    walkable = false,
+    light_source = 12,
+    groups = {choppy=2, dig_immediate=3, flammable=1, not_in_creative_inventory=1, attached_node=1, torch=1},
+    drop = "civi_core:torch",
+    selection_box = {
+        type = "wallmounted",
+        wall_top = {-1/8, -1/16, -5/16, 1/8, 1/2, 1/8},
+    },
+    sounds = sounds.node_sound_wood_defaults(),
+    floodable = true,
+    on_flood = torch_on_flood,
+})
 
 minetest.register_node("civi_core:tree", {
     description = "Tree Trunk (Wood)",
@@ -602,6 +699,12 @@ minetest.register_globalstep(function(dtime)
         local pos = player:get_pos()
         local ctrl = player:get_player_control()
         
+        -- DEBUG: Flight info
+        -- local privs = minetest.get_player_privs(name)
+        -- if privs.fly and (ctrl.jump or ctrl.sneak) then
+        --    print("[DEBUG] Fly Active, Jump: " .. tostring(ctrl.jump) .. " Sneak: " .. tostring(ctrl.sneak))
+        -- end
+        
         -- 1. Double-Tap "W" Erkennung
         if ctrl.up and not stats.last_up then
             local now = minetest.get_us_time() / 1000000
@@ -634,7 +737,11 @@ minetest.register_globalstep(function(dtime)
 
         -- Nur Updaten wenn nötig
         if final_speed ~= stats.current_speed then
-            player:set_physics_override({speed = final_speed})
+            player:set_physics_override({
+                speed = final_speed,
+                jump = 1.0,
+                gravity = 1.0
+            })
             stats.current_speed = final_speed
         end
 
@@ -742,21 +849,24 @@ minetest.register_item(":", {
     }
 })
 
-minetest.register_tool("civi_core:stick", {
-    description = "Primitive Stick",
-    inventory_image = "civi_stick.png",
-    wield_image = "civi_stick.png",
+minetest.register_tool("civi_core:pick_wood", {
+    description = "Wooden Pickaxe",
+    inventory_image = "civi_pick_wood.png",
     tool_capabilities = {
-        full_punch_interval = 0.8,
+        full_punch_interval = 1.2,
         max_drop_level = 0,
         groupcaps = {
-            crumbly = {times={[1]=1.5, [2]=1.0, [3]=0.5}, uses=20, maxlevel=1},
-            cracky  = {times={[3]=2.0}, uses=20, maxlevel=1},
-            snappy  = {times={[2]=0.5, [3]=0.2}, uses=20, maxlevel=1},
-            choppy  = {times={[2]=2.5, [3]=1.5}, uses=20, maxlevel=1},
+            cracky = {times={[3]=1.6}, uses=20, maxlevel=1},
         },
         damage_groups = {fleshy=2},
-    }
+    },
+    groups = {pickaxe = 1},
+})
+
+minetest.register_craftitem("civi_core:stick", {
+    description = "Stick",
+    inventory_image = "civi_stick.png",
+    groups = {stick = 1, flammable = 1},
 })
 
 -- =========================================================
@@ -850,11 +960,19 @@ minetest.register_on_dignode(function(pos, oldnode, digger)
 
     -- 1. Special Drop for Stone
     if oldnode.name == "civi_core:stone" then
-        if held == "civi_core:stick" then
-            -- With Stick -> Drop Cobblestone
-            local obj = minetest.add_item(pos, "civi_core:cobble")
-            if obj then
-                obj:set_velocity({x = math.random(-1, 1), y = 2, z = math.random(-1, 1)})
+        if minetest.get_item_group(held, "pickaxe") > 0 then
+            -- With Pickaxe -> Add to Inventory (Auto-Pickup)
+            local inv = digger:get_inventory()
+            local leftover = inv:add_item("main", "civi_core:cobble")
+            if not leftover:is_empty() then
+                local obj = minetest.add_item(pos, leftover)
+                if obj then
+                    obj:set_velocity({x = math.random(-1, 1), y = 2, z = math.random(-1, 1)})
+                end
+            end
+            -- Refresh UI
+            if minetest.get_modpath("i3") then
+                i3.set_fs(digger)
             end
         end
         -- Hand dug (defined by drop="")
@@ -914,6 +1032,25 @@ minetest.register_craft({
     output = "civi_core:stick 8",
     recipe = {
         {"civi_core:wood"},
+    }
+})
+
+minetest.register_craft({
+    output = "civi_core:torch 4",
+    recipe = {
+        {"civi_core:coal_lump"},
+        {"civi_core:stick"},
+        {"civi_core:stick"},
+    }
+})
+
+-- Custom Wooden Pickaxe Recipe
+minetest.register_craft({
+    output = "civi_core:pick_wood",
+    recipe = {
+        {"", "civi_core:wood", "civi_core:wood"},
+        {"", "civi_core:stick", "civi_core:wood"},
+        {"civi_core:stick", "", ""},
     }
 })
 

@@ -885,6 +885,23 @@ minetest.register_tool("civi_core:axe_iron", {
     groups = {axe = 1},
 })
 
+-- Ingots (Barren)
+minetest.register_craftitem("civi_core:steel_ingot", {
+    description = "Steel Ingot",
+    inventory_image = "civi_steel_ingot.png",
+    groups = {toolrepair = 1},
+})
+
+minetest.register_craftitem("civi_core:copper_ingot", {
+    description = "Copper Ingot",
+    inventory_image = "civi_copper_ingot.png",
+})
+
+minetest.register_craftitem("civi_core:gold_ingot", {
+    description = "Gold Ingot",
+    inventory_image = "civi_gold_ingot.png",
+})
+
 minetest.register_craftitem("civi_core:stick", {
     description = "Stick",
     inventory_image = "civi_stick.png",
@@ -981,6 +998,11 @@ if minetest.get_modpath("awards") then
         title = "Iron Age",
         description = "Craft an iron axe to mine gold and process wood faster.",
         icon = "civi_axe_iron.png",
+    })
+    awards.register_award("civi_core:age_of_fire", {
+        title = "Age of Fire",
+        description = "Craft a furnace to smelt ores into pure ingots.",
+        icon = "civi_furnace_front.png",
     })
 end
 
@@ -1098,9 +1120,248 @@ minetest.register_craft({
 minetest.register_craft({
     output = "civi_core:axe_iron",
     recipe = {
-        {"civi_core:iron_lump", "civi_core:iron_lump"},
-        {"civi_core:iron_lump", "civi_core:stick"},
-        {"", "civi_core:stick"},
+        {"civi_core:steel_ingot", "civi_core:steel_ingot", ""},
+        {"civi_core:steel_ingot", "civi_core:stick", ""},
+        {"", "civi_core:stick", ""},
+    }
+})
+
+-- =========================================================
+-- 9. FURNACE & SMELTING LOGIC
+-- =========================================================
+
+local function get_furnace_active_formspec(fuel_percent, item_percent)
+    return "size[8,8.5]"..
+        "list[context;src;2.75,0.5;1,1;]"..
+        "list[context;fuel;2.75,2.5;1,1;]"..
+        "image[2.75,1.5;1,1;civi_furnace_fire_bg.png^[lowpart:"..
+        (fuel_percent)..":civi_furnace_fire_fg.png]"..
+        "image[3.75,1.5;1,1;civi_gui_furnace_arrow_bg.png^[lowpart:"..
+        (item_percent)..":civi_gui_furnace_arrow_fg.png^[transformR270]"..
+        "list[context;dst;4.75,0.96;2,2;]"..
+        "list[current_player;main;0,4.25;8,1;]"..
+        "list[current_player;main;0,5.5;8,3;8]"..
+        "listring[context;dst]"..
+        "listring[current_player;main]"..
+        "listring[context;src]"..
+        "listring[current_player;main]"..
+        "listring[context;fuel]"..
+        "listring[current_player;main]"
+end
+
+local function get_furnace_inactive_formspec()
+    return "size[8,8.5]"..
+        "list[context;src;2.75,0.5;1,1;]"..
+        "list[context;fuel;2.75,2.5;1,1;]"..
+        "image[2.75,1.5;1,1;civi_furnace_fire_bg.png]"..
+        "image[3.75,1.5;1,1;civi_gui_furnace_arrow_bg.png^[transformR270]"..
+        "list[context;dst;4.75,0.96;2,2;]"..
+        "list[current_player;main;0,4.25;8,1;]"..
+        "list[current_player;main;0,5.5;8,3;8]"..
+        "listring[context;dst]"..
+        "listring[current_player;main]"..
+        "listring[context;src]"..
+        "listring[current_player;main]"..
+        "listring[context;fuel]"..
+        "listring[current_player;main]"
+end
+
+local function can_dig(pos, player)
+    local meta = minetest.get_meta(pos)
+    local inv = meta:get_inventory()
+    return inv:is_empty("fuel") and inv:is_empty("dst") and inv:is_empty("src")
+end
+
+local function allow_metadata_inventory_put(pos, listname, index, stack, player)
+    if listname == "fuel" then
+        if minetest.get_craft_result({method="fuel", width=1, items={stack}}).time ~= 0 then
+            return stack:get_count()
+        else
+            return 0
+        end
+    elseif listname == "src" then
+        return stack:get_count()
+    elseif listname == "dst" then
+        return 0
+    end
+end
+
+local function allow_metadata_inventory_move(pos, from_list, from_index, to_list, to_index, count, player)
+    local meta = minetest.get_meta(pos)
+    local inv = meta:get_inventory()
+    local stack = inv:get_stack(from_list, from_index)
+    return allow_metadata_inventory_put(pos, to_list, to_index, stack, player)
+end
+
+local function allow_metadata_inventory_take(pos, listname, index, stack, player)
+    return stack:get_count()
+end
+
+local function swap_node(pos, name)
+    local node = minetest.get_node(pos)
+    if node.name == name then return end
+    node.name = name
+    minetest.swap_node(pos, node)
+end
+
+local function furnace_node_timer(pos, elapsed)
+    local meta = minetest.get_meta(pos)
+    local fuel_time = meta:get_float("fuel_time") or 0
+    local src_time = meta:get_float("src_time") or 0
+    local fuel_totaltime = meta:get_float("fuel_totaltime") or 0
+    local inv = meta:get_inventory()
+    local update = true
+
+    while elapsed > 0 and update do
+        update = false
+        local srclist = inv:get_list("src")
+        local fuellist = inv:get_list("fuel")
+
+        local cooked, aftercooked = minetest.get_craft_result({method = "cooking", width = 1, items = srclist})
+        local cookable = cooked.time ~= 0
+
+        local el = math.min(elapsed, fuel_totaltime - fuel_time)
+        if cookable then
+            el = math.min(el, cooked.time - src_time)
+        end
+
+        if fuel_time < fuel_totaltime then
+            fuel_time = fuel_time + el
+            if cookable then
+                src_time = src_time + el
+                if src_time >= cooked.time then
+                    if inv:room_for_item("dst", cooked.item) then
+                        inv:add_item("dst", cooked.item)
+                        inv:set_stack("src", 1, aftercooked.items[1])
+                        src_time = src_time - cooked.time
+                        update = true
+                    end
+                else
+                    update = true
+                end
+            end
+        else
+            if cookable then
+                local fuel, afterfuel = minetest.get_craft_result({method = "fuel", width = 1, items = fuellist})
+                if fuel.time > 0 then
+                    inv:set_stack("fuel", 1, afterfuel.items[1])
+                    fuel_totaltime = fuel.time
+                    fuel_time = 0
+                    update = true
+                else
+                    fuel_totaltime = 0
+                    src_time = 0
+                end
+            else
+                fuel_totaltime = 0
+                src_time = 0
+            end
+        end
+        elapsed = elapsed - el
+    end
+
+    local item_percent = 0
+    local srclist = inv:get_list("src")
+    local cooked = minetest.get_craft_result({method = "cooking", width = 1, items = srclist})
+    if cooked.time ~= 0 then
+        item_percent = math.floor(src_time / cooked.time * 100)
+    end
+
+    if fuel_totaltime ~= 0 then
+        local fuel_percent = 100 - math.floor(fuel_time / fuel_totaltime * 100)
+        meta:set_string("formspec", get_furnace_active_formspec(fuel_percent, item_percent))
+        swap_node(pos, "civi_core:furnace_active")
+        meta:set_string("infotext", "Furnace active")
+        return true
+    else
+        meta:set_string("formspec", get_furnace_inactive_formspec())
+        swap_node(pos, "civi_core:furnace")
+        meta:set_string("infotext", "Furnace inactive")
+        return false
+    end
+end
+
+minetest.register_node("civi_core:furnace", {
+    description = "Furnace",
+    tiles = {
+        "civi_furnace_top.png", "civi_furnace_bottom.png",
+        "civi_furnace_side.png", "civi_furnace_side.png",
+        "civi_furnace_side.png", "civi_furnace_front.png"
+    },
+    paramtype2 = "facedir",
+    groups = {cracky=2},
+    can_dig = can_dig,
+    on_timer = furnace_node_timer,
+    on_construct = function(pos)
+        local meta = minetest.get_meta(pos)
+        local inv = meta:get_inventory()
+        inv:set_size('src', 1)
+        inv:set_size('fuel', 1)
+        inv:set_size('dst', 4)
+        meta:set_string("formspec", get_furnace_inactive_formspec())
+    end,
+    on_metadata_inventory_put = function(pos)
+        minetest.get_node_timer(pos):start(1.0)
+    end,
+    on_metadata_inventory_take = function(pos)
+        minetest.get_node_timer(pos):start(1.0)
+    end,
+    allow_metadata_inventory_put = allow_metadata_inventory_put,
+    allow_metadata_inventory_move = allow_metadata_inventory_move,
+    allow_metadata_inventory_take = allow_metadata_inventory_take,
+})
+
+minetest.register_node("civi_core:furnace_active", {
+    description = "Furnace",
+    tiles = {
+        "civi_furnace_top.png", "civi_furnace_bottom.png",
+        "civi_furnace_side.png", "civi_furnace_side.png",
+        "civi_furnace_side.png",
+        {
+            name = "civi_furnace_front_active.png",
+            animation = {type = "vertical_frames", aspect_w = 16, aspect_h = 16, length = 1.5},
+        }
+    },
+    paramtype2 = "facedir",
+    light_source = 8,
+    drop = "civi_core:furnace",
+    groups = {cracky=2, not_in_creative_inventory=1},
+    on_timer = furnace_node_timer,
+    can_dig = can_dig,
+    allow_metadata_inventory_put = allow_metadata_inventory_put,
+    allow_metadata_inventory_move = allow_metadata_inventory_move,
+    allow_metadata_inventory_take = allow_metadata_inventory_take,
+})
+
+-- Smelting Recipes
+minetest.register_craft({
+    type = "cooking",
+    output = "civi_core:steel_ingot",
+    recipe = "civi_core:iron_lump",
+    cooktime = 3,
+})
+
+minetest.register_craft({
+    type = "cooking",
+    output = "civi_core:gold_ingot",
+    recipe = "civi_core:gold_lump",
+    cooktime = 3,
+})
+
+minetest.register_craft({
+    type = "cooking",
+    output = "civi_core:copper_ingot",
+    recipe = "civi_core:copper_lump",
+    cooktime = 3,
+})
+
+-- Furnace Recipe
+minetest.register_craft({
+    output = "civi_core:furnace",
+    recipe = {
+        {"civi_core:cobble", "civi_core:cobble", "civi_core:cobble"},
+        {"civi_core:cobble", "", "civi_core:cobble"},
+        {"civi_core:cobble", "civi_core:cobble", "civi_core:cobble"},
     }
 })
 
@@ -1136,6 +1397,17 @@ minetest.register_on_craft(function(itemstack, crafter, recipe, inventory)
             minetest.sound_play("civi_achievement", {to_player = p_name, gain = 1.0})
             if minetest.get_modpath("awards") then
                 awards.unlock(p_name, "civi_core:iron_age")
+            end
+        end
+    end
+
+    -- 4. Achievement Trigger: Age of Fire
+    if name == "civi_core:furnace" then
+        if meta:get_int("civi_core:ach_age_of_fire") == 0 then
+            meta:set_int("civi_core:ach_age_of_fire", 1)
+            minetest.sound_play("civi_achievement", {to_player = p_name, gain = 1.0})
+            if minetest.get_modpath("awards") then
+                awards.unlock(p_name, "civi_core:age_of_fire")
             end
         end
     end

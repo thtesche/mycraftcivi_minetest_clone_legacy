@@ -94,6 +94,92 @@ minetest.register_on_player_hpchange(function(player, hp_change, reason)
 end, true)
 
 -- =========================================================
+-- SOUND HELPERS (based on minetest_game default functions)
+-- =========================================================
+
+local sounds = {}
+
+function sounds.node_sound_defaults(tbl)
+    tbl = tbl or {}
+    tbl.footstep = tbl.footstep or {name = "", gain = 1.0}
+    tbl.dug = tbl.dug or {name = "default_dug_node", gain = 0.25}
+    tbl.place = tbl.place or {name = "default_place_node_hard", gain = 1.0}
+    return tbl
+end
+
+function sounds.node_sound_stone_defaults(tbl)
+    tbl = tbl or {}
+    tbl.footstep = tbl.footstep or {name = "default_hard_footstep", gain = 0.2}
+    tbl.dug = tbl.dug or {name = "default_hard_footstep", gain = 1.0}
+    return sounds.node_sound_defaults(tbl)
+end
+
+function sounds.node_sound_dirt_defaults(tbl)
+    tbl = tbl or {}
+    tbl.footstep = tbl.footstep or {name = "default_dirt_footstep", gain = 0.25}
+    tbl.dig = tbl.dig or {name = "default_dig_crumbly", gain = 0.4}
+    tbl.dug = tbl.dug or {name = "default_dirt_footstep", gain = 1.0}
+    tbl.place = tbl.place or {name = "default_place_node", gain = 1.0}
+    return sounds.node_sound_defaults(tbl)
+end
+
+function sounds.node_sound_sand_defaults(tbl)
+    tbl = tbl or {}
+    tbl.footstep = tbl.footstep or {name = "default_sand_footstep", gain = 0.05}
+    tbl.dug = tbl.dug or {name = "default_sand_footstep", gain = 0.15}
+    tbl.place = tbl.place or {name = "default_place_node", gain = 1.0}
+    return sounds.node_sound_defaults(tbl)
+end
+
+function sounds.node_sound_wood_defaults(tbl)
+    tbl = tbl or {}
+    tbl.footstep = tbl.footstep or {name = "default_wood_footstep", gain = 0.15}
+    tbl.dig = tbl.dig or {name = "default_dig_choppy", gain = 0.4}
+    tbl.dug = tbl.dug or {name = "default_wood_footstep", gain = 1.0}
+    return sounds.node_sound_defaults(tbl)
+end
+
+function sounds.node_sound_leaves_defaults(tbl)
+    tbl = tbl or {}
+    tbl.footstep = tbl.footstep or {name = "default_grass_footstep", gain = 0.45}
+    tbl.dug = tbl.dug or {name = "default_grass_footstep", gain = 0.7}
+    tbl.place = tbl.place or {name = "default_place_node", gain = 1.0}
+    return sounds.node_sound_defaults(tbl)
+end
+
+function sounds.node_sound_glass_defaults(tbl)
+    tbl = tbl or {}
+    tbl.footstep = tbl.footstep or {name = "default_glass_footstep", gain = 0.3}
+    tbl.dig = tbl.dig or {name = "default_glass_footstep", gain = 0.5}
+    tbl.dug = tbl.dug or {name = "default_break_glass", gain = 1.0}
+    return sounds.node_sound_defaults(tbl)
+end
+
+function sounds.node_sound_ice_defaults(tbl)
+    tbl = tbl or {}
+    tbl.footstep = tbl.footstep or {name = "default_ice_footstep", gain = 0.15}
+    tbl.dig = tbl.dig or {name = "default_ice_dig", gain = 0.5}
+    tbl.dug = tbl.dug or {name = "default_ice_dug", gain = 0.5}
+    return sounds.node_sound_defaults(tbl)
+end
+
+function sounds.node_sound_snow_defaults(tbl)
+    tbl = tbl or {}
+    tbl.footstep = tbl.footstep or {name = "default_snow_footstep", gain = 0.2}
+    tbl.dig = tbl.dig or {name = "default_snow_footstep", gain = 0.3}
+    tbl.dug = tbl.dug or {name = "default_snow_footstep", gain = 0.3}
+    tbl.place = tbl.place or {name = "default_place_node", gain = 1.0}
+    return sounds.node_sound_defaults(tbl)
+end
+
+function sounds.node_sound_water_defaults(tbl)
+    tbl = tbl or {}
+    tbl.footstep = tbl.footstep or {name = "default_water_footstep", gain = 0.2}
+    return sounds.node_sound_defaults(tbl)
+end
+
+
+-- =========================================================
 -- 1. TERRAIN-BLÖCKE (werden vom Welt-Generator benötigt)
 -- =========================================================
 
@@ -102,30 +188,35 @@ minetest.register_node("civi_core:stone", {
     tiles = {"civi_stone.png"},
     groups = {cracky = 3, stone = 1},
     drop = "", -- Hand dug drops nothing
+    sounds = sounds.node_sound_stone_defaults(),
 })
 
 minetest.register_node("civi_core:cobble", {
     description = "Cobblestone",
     tiles = {"civi_cobble.png"},
     groups = {cracky = 3, stone = 1},
+    sounds = sounds.node_sound_stone_defaults(),
 })
 
 minetest.register_node("civi_core:dirt", {
     description = "Dirt",
     tiles = {"civi_dirt.png"},
     groups = {crumbly = 3, soil = 1},
+    sounds = sounds.node_sound_dirt_defaults(),
 })
 
 minetest.register_node("civi_core:dirt_with_grass", {
     description = "Dirt with Grass",
     tiles = {"civi_grass.png", "civi_dirt.png", {name = "civi_dirt.png^civi_grass_side.png", tileable_vertical = false}},
     groups = {crumbly = 3, soil = 1},
+    sounds = sounds.node_sound_dirt_defaults(),
 })
 
 minetest.register_node("civi_core:sand", {
     description = "Sand",
     tiles = {"civi_sand.png"},
     groups = {crumbly = 3, falling_node = 1, sand = 1},
+    sounds = sounds.node_sound_sand_defaults(),
 })
 
 minetest.register_node("civi_core:stone_with_coal", {
@@ -133,6 +224,7 @@ minetest.register_node("civi_core:stone_with_coal", {
     tiles = {"civi_stone.png^civi_mineral_coal.png"},
     groups = {cracky = 3},
     drop = "civi_core:coal_lump",
+    sounds = sounds.node_sound_stone_defaults(),
 })
 minetest.register_craftitem("civi_core:coal_lump", {
     description = "Coal Lump",
@@ -145,6 +237,7 @@ minetest.register_node("civi_core:stone_with_iron", {
     tiles = {"civi_stone.png^civi_mineral_iron.png"},
     groups = {cracky = 2},
     drop = "civi_core:iron_lump",
+    sounds = sounds.node_sound_stone_defaults(),
 })
 
 minetest.register_craftitem("civi_core:iron_lump", {
@@ -157,6 +250,7 @@ minetest.register_node("civi_core:stone_with_copper", {
     tiles = {"civi_stone.png^civi_mineral_copper.png"},
     groups = {cracky = 2},
     drop = "civi_core:copper_lump",
+    sounds = sounds.node_sound_stone_defaults(),
 })
 
 minetest.register_craftitem("civi_core:copper_lump", {
@@ -169,6 +263,7 @@ minetest.register_node("civi_core:stone_with_gold", {
     tiles = {"civi_stone.png^civi_mineral_gold.png"},
     groups = {cracky = 2},
     drop = "civi_core:gold_lump",
+    sounds = sounds.node_sound_stone_defaults(),
 })
 
 minetest.register_craftitem("civi_core:gold_lump", {
@@ -184,6 +279,7 @@ minetest.register_node("civi_core:glass", {
     sunlight_propagates = true,
     use_texture_alpha = "clip",
     groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
+    sounds = sounds.node_sound_glass_defaults(),
 })
 
 minetest.register_node("civi_core:ice", {
@@ -192,12 +288,14 @@ minetest.register_node("civi_core:ice", {
     is_ground_content = false,
     paramtype = "light",
     groups = {cracky = 3, slippery = 3},
+    sounds = sounds.node_sound_ice_defaults(),
 })
 
 minetest.register_node("civi_core:snowblock", {
     description = "Snow Block",
     tiles = {"civi_snow.png"},
     groups = {crumbly = 3, snowy = 1},
+    sounds = sounds.node_sound_snow_defaults(),
 })
 
 minetest.register_node("civi_core:snow", {
@@ -211,6 +309,7 @@ minetest.register_node("civi_core:snow", {
         fixed = {-0.5, -0.5, -0.5, 0.5, -0.25, 0.5},
     },
     groups = {crumbly = 3, falling_node = 1, snowy = 1},
+    sounds = sounds.node_sound_snow_defaults(),
 })
 
 -- =========================================================
@@ -221,6 +320,7 @@ minetest.register_node("civi_core:tree", {
     description = "Tree Trunk (Wood)",
     tiles = {"civi_tree_trunk_top.png", "civi_tree_trunk_top.png", "civi_tree_trunk.png"},
     groups = {tree = 1, choppy = 2, oddy_breakable_by_hand = 1, flammable = 2},
+    sounds = sounds.node_sound_wood_defaults(),
 })
 
 minetest.register_node("civi_core:leaves", {
@@ -240,6 +340,7 @@ minetest.register_node("civi_core:leaves", {
             {items = {"civi_core:leaves"}},
         }
     },
+    sounds = sounds.node_sound_leaves_defaults(),
 })
 
 minetest.register_node("civi_core:sapling", {
@@ -256,6 +357,7 @@ minetest.register_node("civi_core:sapling", {
         fixed = {-3 / 16, -0.5, -3 / 16, 3 / 16, 0.5, 3 / 16}
     },
     groups = {snappy = 2, dig_immediate = 3, flammable = 2, sapling = 1, attached_node = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
     on_place = function(itemstack, placer, pointed_thing)
         if pointed_thing.type ~= "node" then
             return itemstack
@@ -295,8 +397,8 @@ minetest.register_node("civi_core:apple", {
         fixed = {-3 / 16, -7 / 16, -3 / 16, 3 / 16, 4 / 16, 3 / 16}
     },
     groups = {fleshy = 3, dig_immediate = 3, flammable = 2, leafdecay = 3, food = 1},
-    on_use = minetest.item_eat(2),
-    on_place = minetest.item_eat(2),
+    on_use = minetest.item_eat(2, "default_dig_crumbly"),
+    on_place = minetest.item_eat(2, "default_dig_crumbly"),
 })
 
 minetest.register_node("civi_core:mushroom_brown", {
@@ -308,8 +410,8 @@ minetest.register_node("civi_core:mushroom_brown", {
     sunlight_propagates = true,
     walkable = false,
     groups = {snappy = 3, attached_node = 1, flammable = 1, food = 1},
-    on_use = minetest.item_eat(1),
-    on_place = minetest.item_eat(1),
+    on_use = minetest.item_eat(1, "default_dig_crumbly"),
+    on_place = minetest.item_eat(1, "default_dig_crumbly"),
 })
 
 minetest.register_node("civi_core:mushroom_red", {
@@ -321,8 +423,8 @@ minetest.register_node("civi_core:mushroom_red", {
     sunlight_propagates = true,
     walkable = false,
     groups = {snappy = 3, attached_node = 1, flammable = 1, food = 1},
-    on_use = minetest.item_eat(-5),
-    on_place = minetest.item_eat(-5),
+    on_use = minetest.item_eat(-5, "default_dig_crumbly"),
+    on_place = minetest.item_eat(-5, "default_dig_crumbly"),
 })
 
 minetest.register_node("civi_core:water_source", {
@@ -351,6 +453,7 @@ minetest.register_node("civi_core:water_source", {
     liquid_alternative_source = "civi_core:water_source",
     liquid_viscosity = 1,
     groups = {water = 3, liquid = 3},
+    sounds = sounds.node_sound_water_defaults(),
 })
 
 minetest.register_node("civi_core:water_flowing", {
@@ -461,6 +564,7 @@ minetest.register_node("civi_core:asphalt", {
     description = "Civi Asphalt (Speed: 1.8x)",
     tiles = {"civi_asphalt.png"},
     groups = {cracky = 2, stone = 1},
+    sounds = sounds.node_sound_stone_defaults(),
 })
 
 -- =========================================================

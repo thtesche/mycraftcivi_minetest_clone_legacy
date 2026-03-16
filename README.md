@@ -31,3 +31,10 @@ myCraftCivi is a game that focuses on the evolution from a primitive survival ex
 
 For a detailed vision of the game, check out [idea.md](idea.md).
 Check our current progress in [walkthrough.md](.gemini/antigravity/brain/ad74221a-1857-4b90-8435-bf7581b40bf2/walkthrough.md).
+
+## License & Attribution
+
+- **Code**: Licensed under LGPLv2.1.
+- **Media (Textures & Sounds)**: Licensed under CC BY-SA 3.0.
+
+Many assets (sounds and textures) are derived from the [Minetest Game](https://github.com/minetest/minetest_game) project. We gratefully acknowledge the contributions of the Minetest development community. Detailed attribution for each component can be found in the `license.txt` files within individual mod directories (e.g., `mods/civi_core/license.txt`).

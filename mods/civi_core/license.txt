@@ -1,0 +1,64 @@
+License of source code
+----------------------
+
+GNU Lesser General Public License, version 2.1
+Copyright (C) 2011-2018 celeron55, Perttu Ahola <celeron55@gmail.com>
+Copyright (C) 2011-2018 Various Minetest Game developers and contributors
+Copyright (C) 2026 thtesche (myCraftCivi)
+
+This program is free software; you can redistribute it and/or modify it under the terms
+of the GNU Lesser General Public License as published by the Free Software Foundation;
+either version 2.1 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU Lesser General Public License for more details:
+https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+
+
+Licenses of media (textures, models and sounds)
+-----------------------------------------------
+
+Most sound files and textures in this directory were originated from `minetest_game` (mods/default).
+
+Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)
+Copyright (C) 2010-2023:
+
+  celeron55, Perttu Ahola <celeron55@gmail.com>
+  Cisoun
+  G4JC
+  VanessaE
+  RealBadAngel
+  Calinou
+  MirceaKitsune
+  Jordach
+  PilzAdam
+  jojoa1997
+  InfinityProject
+  Splizard
+  Zeg9
+  paramat
+  BlockMen
+  sofar
+  Neuromancer
+  Gambit
+  asl97
+  KevDoy
+  Mito551
+  GreenXenith
+  kaeza
+  kilbith
+  tobyplowy
+  CloudyProton
+  TumeniNodes
+  Mossmanikin
+  random-geek
+  Extex101
+  An0n3m0us
+  Lopano
+
+For more details on the original contributors, see:
+https://github.com/minetest/minetest_game/blob/master/mods/default/license.txt
+
+Full CC BY-SA 3.0 License:
+http://creativecommons.org/licenses/by-sa/3.0/

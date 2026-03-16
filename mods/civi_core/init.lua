@@ -760,8 +760,8 @@ minetest.register_on_dignode(function(pos, oldnode, digger)
             minetest.sound_play("civi_achievement", {to_player = name, gain = 1.0})
             
             -- UI immediately update
-            if sfinv then
-                sfinv.set_player_inventory_formspec(digger)
+            if i3 then
+                i3.update_inventory(digger)
             end
         end
     end

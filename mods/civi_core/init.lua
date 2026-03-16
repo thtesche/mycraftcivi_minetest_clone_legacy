@@ -312,8 +312,15 @@ minetest.register_node("civi_core:snow", {
     sounds = sounds.node_sound_snow_defaults(),
 })
 
+minetest.register_node("civi_core:wood", {
+    description = "Wooden Planks",
+    tiles = {"civi_wood.png"},
+    groups = {choppy = 2, oddly_breakable_by_hand = 2, flammable = 2, wood = 1},
+    sounds = sounds.node_sound_wood_defaults(),
+})
+
 -- =========================================================
--- BÄUME UND NAHRUNG
+-- 2. BÄUME & NATUR
 -- =========================================================
 
 minetest.register_node("civi_core:tree", {
@@ -397,8 +404,8 @@ minetest.register_node("civi_core:apple", {
         fixed = {-3 / 16, -7 / 16, -3 / 16, 3 / 16, 4 / 16, 3 / 16}
     },
     groups = {fleshy = 3, dig_immediate = 3, flammable = 2, leafdecay = 3, food = 1},
-    on_use = minetest.item_eat(2, "default_dig_crumbly"),
-    on_place = minetest.item_eat(2, "default_dig_crumbly"),
+    on_use = minetest.item_eat(2),
+    on_place = minetest.item_eat(2),
 })
 
 minetest.register_node("civi_core:mushroom_brown", {
@@ -410,8 +417,8 @@ minetest.register_node("civi_core:mushroom_brown", {
     sunlight_propagates = true,
     walkable = false,
     groups = {snappy = 3, attached_node = 1, flammable = 1, food = 1},
-    on_use = minetest.item_eat(1, "default_dig_crumbly"),
-    on_place = minetest.item_eat(1, "default_dig_crumbly"),
+    on_use = minetest.item_eat(1),
+    on_place = minetest.item_eat(1),
 })
 
 minetest.register_node("civi_core:mushroom_red", {
@@ -423,8 +430,8 @@ minetest.register_node("civi_core:mushroom_red", {
     sunlight_propagates = true,
     walkable = false,
     groups = {snappy = 3, attached_node = 1, flammable = 1, food = 1},
-    on_use = minetest.item_eat(-5, "default_dig_crumbly"),
-    on_place = minetest.item_eat(-5, "default_dig_crumbly"),
+    on_use = minetest.item_eat(-5),
+    on_place = minetest.item_eat(-5),
 })
 
 minetest.register_node("civi_core:water_source", {
@@ -823,6 +830,18 @@ minetest.register_decoration({
 -- =========================================================
 
 -- Fortschritt tracken und Stein-Drops beeinflussen
+-- =========================================================
+-- 6. ERFOLGE & SPIELFORTSCHRITT
+-- =========================================================
+
+if minetest.get_modpath("awards") then
+    awards.register_award("civi_core:hunter_gatherer", {
+        title = "Hunter & Gatherer",
+        description = "Mine wood and gather food to start your civilization.",
+        icon = "civi_apple.png",
+    })
+end
+
 minetest.register_on_dignode(function(pos, oldnode, digger)
     if not digger or not digger:is_player() then return end
     local name = digger:get_player_name()
@@ -857,15 +876,18 @@ minetest.register_on_dignode(function(pos, oldnode, digger)
         -- Check if both requirements met
         if meta:get_int("civi_core:got_wood") == 1 and meta:get_int("civi_core:got_food") == 1 then
             meta:set_int("civi_core:ach_hunter_gatherer", 1)
-            minetest.chat_send_all("*** " .. name .. " unlocked the achievement 'Hunter & Gatherer'!")
-            minetest.chat_send_player(name, "[System] You can now craft a stick from wood or leaves.")
             
             -- Play sound
             minetest.sound_play("civi_achievement", {to_player = name, gain = 1.0})
             
+            -- Awards Mod Integration
+            if minetest.get_modpath("awards") then
+                awards.unlock(name, "civi_core:hunter_gatherer")
+            end
+
             -- UI immediately update
             if i3 then
-                i3.update_inventory(digger)
+                i3.set_fs(digger)
             end
         end
     end
@@ -882,9 +904,16 @@ minetest.register_craft({
 })
 
 minetest.register_craft({
-    output = "civi_core:stick 4",
+    output = "civi_core:wood 4",
     recipe = {
         {"civi_core:tree"},
+    }
+})
+
+minetest.register_craft({
+    output = "civi_core:stick 8",
+    recipe = {
+        {"civi_core:wood"},
     }
 })
 

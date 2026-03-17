@@ -97,7 +97,7 @@ end, true)
 -- SOUND HELPERS (based on minetest_game default functions)
 -- =========================================================
 
-local sounds = {}
+sounds = {}
 
 function sounds.node_sound_defaults(tbl)
     tbl = tbl or {}
@@ -201,14 +201,14 @@ minetest.register_node("civi_core:cobble", {
 minetest.register_node("civi_core:dirt", {
     description = "Dirt",
     tiles = {"civi_dirt.png"},
-    groups = {crumbly = 3, soil = 1},
+    groups = {crumbly = 3, soil = 1, dirt = 1},
     sounds = sounds.node_sound_dirt_defaults(),
 })
 
 minetest.register_node("civi_core:dirt_with_grass", {
     description = "Dirt with Grass",
     tiles = {"civi_grass.png", "civi_dirt.png", {name = "civi_dirt.png^civi_grass_side.png", tileable_vertical = false}},
-    groups = {crumbly = 3, soil = 1},
+    groups = {crumbly = 3, soil = 1, grass = 1},
     sounds = sounds.node_sound_dirt_defaults(),
 })
 
@@ -984,26 +984,29 @@ minetest.register_decoration({
 -- =========================================================
 
 if minetest.get_modpath("awards") then
-    awards.register_award("civi_core:hunter_gatherer", {
-        title = "Hunter & Gatherer",
-        description = "Mine wood and gather food to start your civilization.",
-        icon = "civi_apple.png",
-    })
-    awards.register_award("civi_core:stone_age", {
-        title = "Stone Age",
-        description = "Craft a stone pickaxe to mine metal ores (Iron/Copper).",
-        icon = "civi_pick_stone.png",
-    })
-    awards.register_award("civi_core:iron_age", {
-        title = "Iron Age",
-        description = "Craft an iron axe to mine gold and process wood faster.",
-        icon = "civi_axe_iron.png",
-    })
-    awards.register_award("civi_core:age_of_fire", {
-        title = "Age of Fire",
-        description = "Craft a furnace to smelt ores into pure ingots.",
-        icon = "civi_furnace_front.png",
-    })
+    minetest.register_on_mods_loaded(function()
+        if not _G.awards then return end
+        awards.register_award("civi_core:hunter_gatherer", {
+            title = "Hunter & Gatherer",
+            description = "Mine wood and gather food to start your civilization.",
+            icon = "civi_apple.png",
+        })
+        awards.register_award("civi_core:stone_age", {
+            title = "Stone Age",
+            description = "Craft a stone pickaxe to mine metal ores (Iron/Copper).",
+            icon = "civi_pick_stone.png",
+        })
+        awards.register_award("civi_core:iron_age", {
+            title = "Iron Age",
+            description = "Craft an iron axe to mine gold and process wood faster.",
+            icon = "civi_axe_iron.png",
+        })
+        awards.register_award("civi_core:age_of_fire", {
+            title = "Age of Fire",
+            description = "Craft a furnace to smelt ores into pure ingots.",
+            icon = "civi_furnace_front.png",
+        })
+    end)
 end
 
 minetest.register_on_dignode(function(pos, oldnode, digger)

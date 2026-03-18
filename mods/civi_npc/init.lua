@@ -21,6 +21,66 @@ mobs:register_mob("civi_npc:lumberjack", {
     view_range = 15,
 
     do_custom = function(self, dtime)
+        -- Init internal inventory
+        if not self.inv then
+            self.inv = { wood = 0, saplings = 0 }
+        end
+
+        local pos = self.object:get_pos()
+        if not pos then return false end
+
+        -- ==== 1. CHEST LOGIC ====
+        if self.target_chest then
+            local target_node = minetest.get_node(self.target_chest)
+            if target_node.name ~= "civi_storage:chest" and target_node.name ~= "civi_storage:chest_double" then
+                self.target_chest = nil -- Chest was removed or invalid
+                return true
+            end
+
+            local dist = vector.distance(pos, self.target_chest)
+            if dist > 2.0 then
+                -- Walk towards chest
+                local direction = vector.direction(pos, self.target_chest)
+                self.object:set_yaw(minetest.dir_to_yaw(direction))
+                self:set_velocity(self.walk_velocity)
+                self:set_animation("walk")
+
+                -- Anti-Stuck Logic
+                self.stuck_timer = (self.stuck_timer or 0) + dtime
+                if self.stuck_timer > 15.0 then
+                    self.target_chest = nil
+                    self.stuck_timer = 0
+                end
+            else
+                -- At chest: Deposit and Craft
+                self:set_velocity(0)
+                self:set_animation("stand")
+                
+                local meta = minetest.get_meta(self.target_chest)
+                local inv = meta:get_inventory()
+                
+                local wood_amount = self.inv.wood
+                if wood_amount > 0 then
+                    local half_wood = math.floor(wood_amount / 2)
+                    local boards = half_wood * 4
+                    local remaining_wood = wood_amount - half_wood
+                    
+                    if boards > 0 then
+                        inv:add_item("main", ItemStack("civi_core:wood " .. boards))
+                    end
+                    if remaining_wood > 0 then
+                        inv:add_item("main", ItemStack("civi_core:tree " .. remaining_wood))
+                    end
+                    self.inv.wood = 0
+                end
+                
+                self.target_chest = nil
+                self.stuck_timer = 0
+            end
+            return true
+        end
+
+        -- ==== 2. TREE LOGIC ====
         -- Search Timer: Save performance, only search 1x per second
         self.search_timer = (self.search_timer or 0) + dtime
         
@@ -28,20 +88,13 @@ mobs:register_mob("civi_npc:lumberjack", {
         if not self.target_tree then
             if self.search_timer >= 1.0 then
                 self.search_timer = 0
-                local pos = self.object:get_pos()
-                if pos then
-                    self.target_tree = minetest.find_node_near(pos, 10, {"group:tree"})
-                    self.stuck_timer = 0 -- Start timeout for getting stuck
-                end
+                self.target_tree = minetest.find_node_near(pos, 150, {"group:tree"})
+                self.stuck_timer = 0 -- Start timeout for getting stuck
             end
             
             -- Since we don't have a target, let the standard AI roam normally
             return false 
         end
-
-        -- ==== FROM HERE: WE HAVE A TREE TARGETED ====
-        local pos = self.object:get_pos()
-        if not pos then return false end
 
         -- Check if the tree might have been mined by a player in the meantime
         local target_node = minetest.get_node(self.target_tree)
@@ -55,15 +108,13 @@ mobs:register_mob("civi_npc:lumberjack", {
         if dist > 2.0 then
             -- 1. STILL TOO FAR AWAY: Walk towards it continuously
             local direction = vector.direction(pos, self.target_tree)
-            local yaw = minetest.dir_to_yaw(direction)
-            
-            self.object:set_yaw(yaw)
+            self.object:set_yaw(minetest.dir_to_yaw(direction))
             self:set_velocity(self.walk_velocity)
             self:set_animation("walk")
 
-            -- Anti-Stuck Logic: If they don't arrive after 10 seconds (mountain etc.), give up
+            -- Anti-Stuck Logic
             self.stuck_timer = (self.stuck_timer or 0) + dtime
-            if self.stuck_timer > 10.0 then
+            if self.stuck_timer > 15.0 then
                 self.target_tree = nil
                 self.stuck_timer = 0
             end
@@ -79,10 +130,22 @@ mobs:register_mob("civi_npc:lumberjack", {
             if self.chopping_timer > 2.0 then
                 self.chopping_timer = 0
                 
-                -- Area-Sweep: Y-Offset starts at -1 in case the targeted block was the middle trunk
-                for y_offset = -1, 7 do
-                    for x_offset = -2, 2 do
-                        for z_offset = -2, 2 do
+                -- Improve target tree: Move to the lowest trunk block to ensure we clear the whole tree
+                local base_pos = {x=self.target_tree.x, y=self.target_tree.y, z=self.target_tree.z}
+                for i = 1, 20 do -- Max 20 blocks down
+                    local under = {x=base_pos.x, y=base_pos.y-1, z=base_pos.z}
+                    if minetest.get_item_group(minetest.get_node(under).name, "tree") > 0 then
+                        base_pos.y = base_pos.y - 1
+                    else
+                        break
+                    end
+                end
+                self.target_tree = base_pos
+
+                -- Area-Sweep: Increased height to 15 for larger trees
+                for y_offset = -1, 15 do
+                    for x_offset = -3, 3 do
+                        for z_offset = -3, 3 do
                             local check_pos = {
                                 x = self.target_tree.x + x_offset, 
                                 y = self.target_tree.y + y_offset, 
@@ -91,21 +154,79 @@ mobs:register_mob("civi_npc:lumberjack", {
                             local node = minetest.get_node(check_pos)
                             
                             -- Is it wood or leaves?
-                            if minetest.get_item_group(node.name, "tree") > 0 or minetest.get_item_group(node.name, "leaves") > 0 then
-                                minetest.dig_node(check_pos)
+                            if minetest.get_item_group(node.name, "tree") > 0 then
+                                -- Gather logs into internal inventory
+                                local drops = minetest.get_node_drops(node.name, "")
+                                for _, item in ipairs(drops) do
+                                    local stack = ItemStack(item)
+                                    if minetest.get_item_group(stack:get_name(), "tree") > 0 or stack:get_name() == "civi_core:tree" then
+                                        self.inv.wood = self.inv.wood + stack:get_count()
+                                    elseif minetest.get_item_group(stack:get_name(), "sapling") > 0 or stack:get_name() == "civi_core:sapling" then
+                                        self.inv.saplings = self.inv.saplings + stack:get_count()
+                                    end
+                                end
+                                minetest.remove_node(check_pos)
+                            elseif minetest.get_item_group(node.name, "leaves") > 0 then
+                                -- Drop leaves and apples as items, but keep saplings
+                                local drops = minetest.get_node_drops(node.name, "")
+                                for _, item in ipairs(drops) do
+                                    local stack = ItemStack(item)
+                                    local name = stack:get_name()
+                                    if minetest.get_item_group(name, "sapling") > 0 or name == "civi_core:sapling" then
+                                        self.inv.saplings = self.inv.saplings + stack:get_count()
+                                    else
+                                        minetest.add_item(check_pos, item)
+                                    end
+                                end
+                                minetest.remove_node(check_pos)
                             end
                         end
                     end
                 end
 
-                -- Replant-Logic (Plant sapling)
-                local node_below = minetest.get_node({x=self.target_tree.x, y=self.target_tree.y-1, z=self.target_tree.z})
-                if node_below.name == "civi_core:dirt_with_grass" or node_below.name == "civi_core:dirt" then
-                    minetest.set_node(self.target_tree, {name = "civi_core:sapling"})
+                -- Pickup logic: Collect nearby sapling items from the ground
+                local nearby_objs = minetest.get_objects_inside_radius(pos, 5)
+                for _, obj in ipairs(nearby_objs) do
+                    local ent = obj:get_luaentity()
+                    if ent and ent.name == "__builtin:item" then
+                        local stack = ItemStack(ent.itemstring)
+                        local name = stack:get_name()
+                        if minetest.get_item_group(name, "sapling") > 0 or name == "civi_core:sapling" then
+                            self.inv.saplings = self.inv.saplings + stack:get_count()
+                            obj:remove()
+                        end
+                    end
                 end
 
-                -- Job is done, discard target so they search for a new tree
+                -- Replant-Logic: Plant gathered saplings
+                while self.inv.saplings > 0 do
+                    for r = 1, 10 do
+                        local rx = self.target_tree.x + math.random(-3, 3)
+                        local ry = self.target_tree.y + math.random(-2, 2)
+                        local rz = self.target_tree.z + math.random(-3, 3)
+                        
+                        local p_under = {x=rx, y=ry-1, z=rz}
+                        local p_above = {x=rx, y=ry, z=rz}
+                        local n_under = minetest.get_node(p_under)
+                        local n_above = minetest.get_node(p_above)
+                        
+                        if (n_under.name == "civi_core:dirt_with_grass" or n_under.name == "civi_core:dirt") and n_above.name == "air" then
+                            minetest.set_node(p_above, {name = "civi_core:sapling"})
+                            break
+                        end
+                    end
+                    -- Consume sapling even if no valid planting spot was found
+                    self.inv.saplings = self.inv.saplings - 1
+                end
+
+                -- Job is done, discard target tree
                 self.target_tree = nil
+                
+                -- Check for chest delivery
+                if self.inv.wood > 0 then
+                    local p = self.object:get_pos()
+                    self.target_chest = minetest.find_node_near(p, 300, {"civi_storage:chest", "civi_storage:chest_double"})
+                end
             end
         end
         

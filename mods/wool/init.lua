@@ -5,14 +5,34 @@ local S = minetest.get_translator("wool")
 
 local dyes = dye.dyes
 
-for i = 1, #dyes do
-	local name, desc = unpack(dyes[i])
+local wool_colors = {
+	{"black",      "Black",      "#000000b0"},
+	{"blue",       "Blue",       "#015dbb70"},
+	{"brown",      "Brown",      "#663300a0"},
+	{"cyan",       "Cyan",       "#01ffd870"},
+	{"dark_green", "Dark Green", "#005b0770"},
+	{"dark_grey",  "Dark Grey",  "#303030b0"},
+	{"green",      "Green",      "#61ff0170"},
+	{"grey",       "Grey",       "#5b5b5bb0"},
+	{"magenta",    "Magenta",    "#ff05bb70"},
+	{"orange",     "Orange",     "#ff840170"},
+	{"pink",       "Pink",       "#ff65b570"},
+	{"red",        "Red",        "#ff0000a0"},
+	{"violet",     "Violet",     "#2000c970"},
+	{"white",      "White",      "#abababc0"},
+	{"yellow",     "Yellow",     "#e3ff0070"},
+}
+
+for i = 1, #wool_colors do
+	local name = wool_colors[i][1]
+	local desc = wool_colors[i][2]
+	local hex  = wool_colors[i][3]
 
 	local color_group = "color_" .. name
 
 	minetest.register_node("wool:" .. name, {
 		description = S(desc .. " Wool"),
-		tiles = {"wool_" .. name .. ".png"},
+		tiles = {"wool_white.png^[colorize:" .. hex},
 		is_ground_content = false,
 		groups = {snappy = 2, choppy = 2, oddly_breakable_by_hand = 3,
 				flammable = 3, wool = 1, [color_group] = 1},
@@ -22,7 +42,7 @@ for i = 1, #dyes do
 	minetest.register_craft{
 		type = "shapeless",
 		output = "wool:" .. name,
-		recipe = {"group:dye," .. color_group, "group:wool"},
+		recipe = {"group:dye,color_" .. name, "group:wool"},
 	}
 end
 

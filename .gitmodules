@@ -1,3 +1,6 @@
 [submodule ".reference_games/minetest_game"]
 	path = .reference_games/minetest_game
 	url = git@github.com:luanti-org/minetest_game.git
+[submodule ".reference_games/sociedades"]
+	path = .reference_games/sociedades
+	url = https://github.com/hkzorman/sociedades

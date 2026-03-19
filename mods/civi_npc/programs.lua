@@ -4,9 +4,9 @@
 -- This program is executed when a tree is found.
 -- Arguments: { pos = {x,y,z} }
 npc.programs.register("civi_npc:chop_tree", function(self, args)
-    local tree_pos = args.pos or "calculated_target_pos"
+    local tree_pos = npc.programs.helper.get_pos_argument(self, args.pos or "calculated_target_pos", false)
     if not tree_pos then
-        npc.log("ERROR", "civi_npc:chop_tree called without position")
+        npc.log("ERROR", "civi_npc:chop_tree called without valid position: " .. dump(args.pos or "calculated_target_pos"))
         return
     end
 
@@ -41,7 +41,7 @@ end)
 
 -- Instruction for the actual node removal and gathering
 npc.programs.instr.register("civi_npc:do_manual_chop", function(self, args)
-    local tree_pos = args.pos
+    local tree_pos = npc.programs.helper.get_pos_argument(self, args.pos, false)
     if not tree_pos then return end
 
     -- Re-check if it's still a tree
@@ -161,21 +161,21 @@ npc.programs.register("civi_npc:walk_to_pos_robust", function(self, args)
         local dir = vector.direction(current_pos, end_pos)
         local target_segment_pos = vector.add(current_pos, vector.multiply(dir, segment_dist))
         
-        -- Walk to segment
-        npc.exec.proc.enqueue(self, "advanced_npc:interrupt", {
-            new_program = "advanced_npc:walk_to_pos",
-            new_args = {
-                end_pos = target_segment_pos,
-                use_access_node = false,
-                walkable = walkable_nodes,
-                enforce_move = true
-            }
+        -- Walk to segment endpoint (program execution enqueues instructions)
+        npc.programs.execute(self, "advanced_npc:walk_to_pos", {
+            end_pos = target_segment_pos,
+            use_access_node = false,
+            walkable = walkable_nodes,
+            enforce_move = true
         })
         
-        -- Recursively call robust walk until close
-        npc.exec.proc.enqueue(self, "civi_npc:walk_to_pos_robust", {
-            end_pos = end_pos,
-            use_access_node = use_access_node
+        -- After the walk segment, interrupt to start the next robust segment
+        npc.exec.proc.enqueue(self, "advanced_npc:interrupt", {
+            new_program = "civi_npc:walk_to_pos_robust",
+            new_args = {
+                end_pos = end_pos,
+                use_access_node = use_access_node
+            }
         })
     else
         -- Close enough, final walk

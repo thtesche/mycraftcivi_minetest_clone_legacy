@@ -16,7 +16,7 @@ local function init_hud(player)
 		notifs = {},
 
 		wielditem = player:hud_add {
-			hud_elem_type = "text",
+			type = "text",
 			position      = {x = 0.5, y = 1},
 			offset        = {x = 0,   y = wdesc_y},
 			alignment     = {x = 0,   y = -1},

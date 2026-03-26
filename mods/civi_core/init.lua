@@ -319,6 +319,55 @@ minetest.register_node("civi_core:wood", {
     sounds = sounds.node_sound_wood_defaults(),
 })
 
+minetest.register_node("civi_core:stone_brick", {
+    description = "Stone Brick",
+    tiles = {"civi_stone_brick.png"},
+    groups = {cracky = 2, stone = 1},
+    sounds = sounds.node_sound_stone_defaults(),
+})
+
+minetest.register_node("civi_core:brick", {
+    description = "Brick",
+    tiles = {"civi_brick.png"},
+    groups = {cracky = 3},
+    sounds = sounds.node_sound_stone_defaults(),
+})
+
+minetest.register_node("civi_core:desert_stone", {
+    description = "Desert Stone",
+    tiles = {"civi_desert_stone.png"},
+    groups = {cracky = 3, stone = 1},
+    sounds = sounds.node_sound_stone_defaults(),
+})
+
+minetest.register_node("civi_core:sandstone", {
+    description = "Sandstone",
+    tiles = {"civi_sandstone.png"},
+    groups = {crumbly = 2, cracky = 3, stone = 1},
+    sounds = sounds.node_sound_stone_defaults(),
+})
+
+minetest.register_node("civi_core:bronze_block", {
+    description = "Bronze Block",
+    tiles = {"civi_bronze_block.png"},
+    groups = {cracky = 1, level = 2},
+    sounds = sounds.node_sound_stone_defaults(),
+})
+
+minetest.register_node("civi_core:gold_block", {
+    description = "Gold Block",
+    tiles = {"civi_gold_block.png"},
+    groups = {cracky = 1},
+    sounds = sounds.node_sound_stone_defaults(),
+})
+
+minetest.register_node("civi_core:diamond_block", {
+    description = "Diamond Block",
+    tiles = {"civi_diamond_block.png"},
+    groups = {cracky = 1, level = 3},
+    sounds = sounds.node_sound_stone_defaults(),
+})
+
 -- =========================================================
 -- 2. BÄUME, NATUR & LICHT
 -- =========================================================
@@ -425,6 +474,94 @@ minetest.register_node("civi_core:tree", {
     tiles = {"civi_tree_trunk_top.png", "civi_tree_trunk_top.png", "civi_tree_trunk.png"},
     groups = {tree = 1, choppy = 2, oddy_breakable_by_hand = 1, flammable = 2},
     sounds = sounds.node_sound_wood_defaults(),
+})
+
+-- Acacia
+minetest.register_node("civi_core:acacia_tree", {
+    description = "Acacia Tree Trunk",
+    tiles = {"civi_acacia_tree_top.png", "civi_acacia_tree_top.png", "civi_acacia_tree.png"},
+    groups = {tree = 1, choppy = 2, oddy_breakable_by_hand = 1, flammable = 2},
+    sounds = sounds.node_sound_wood_defaults(),
+})
+minetest.register_node("civi_core:acacia_wood", {
+    description = "Acacia Wood Planks",
+    tiles = {"civi_acacia_wood.png"},
+    groups = {choppy = 2, oddly_breakable_by_hand = 2, flammable = 2, wood = 1},
+    sounds = sounds.node_sound_wood_defaults(),
+})
+minetest.register_node("civi_core:acacia_leaves", {
+    description = "Acacia Leaves",
+    drawtype = "allfaces_optional",
+    tiles = {"civi_acacia_leaves.png"},
+    paramtype = "light",
+    groups = {snappy = 3, leafdecay = 3, leaves = 1, flammable = 2},
+    sounds = sounds.node_sound_leaves_defaults(),
+})
+
+-- Aspen
+minetest.register_node("civi_core:aspen_tree", {
+    description = "Aspen Tree Trunk",
+    tiles = {"civi_aspen_tree_top.png", "civi_aspen_tree_top.png", "civi_aspen_tree.png"},
+    groups = {tree = 1, choppy = 2, oddy_breakable_by_hand = 1, flammable = 2},
+    sounds = sounds.node_sound_wood_defaults(),
+})
+minetest.register_node("civi_core:aspen_wood", {
+    description = "Aspen Wood Planks",
+    tiles = {"civi_aspen_wood.png"},
+    groups = {choppy = 2, oddly_breakable_by_hand = 2, flammable = 2, wood = 1},
+    sounds = sounds.node_sound_wood_defaults(),
+})
+minetest.register_node("civi_core:aspen_leaves", {
+    description = "Aspen Leaves",
+    drawtype = "allfaces_optional",
+    tiles = {"civi_aspen_leaves.png"},
+    paramtype = "light",
+    groups = {snappy = 3, leafdecay = 3, leaves = 1, flammable = 2},
+    sounds = sounds.node_sound_leaves_defaults(),
+})
+
+-- Jungle
+minetest.register_node("civi_core:jungletree", {
+    description = "Jungle Tree Trunk",
+    tiles = {"civi_jungletree_top.png", "civi_jungletree_top.png", "civi_jungletree.png"},
+    groups = {tree = 1, choppy = 2, oddy_breakable_by_hand = 1, flammable = 2},
+    sounds = sounds.node_sound_wood_defaults(),
+})
+minetest.register_node("civi_core:junglewood", {
+    description = "Jungle Wood Planks",
+    tiles = {"civi_junglewood.png"},
+    groups = {choppy = 2, oddly_breakable_by_hand = 2, flammable = 2, wood = 1},
+    sounds = sounds.node_sound_wood_defaults(),
+})
+minetest.register_node("civi_core:jungleleaves", {
+    description = "Jungle Leaves",
+    drawtype = "allfaces_optional",
+    tiles = {"civi_jungleleaves.png"},
+    paramtype = "light",
+    groups = {snappy = 3, leafdecay = 3, leaves = 1, flammable = 2},
+    sounds = sounds.node_sound_leaves_defaults(),
+})
+
+-- Pine
+minetest.register_node("civi_core:pine_tree", {
+    description = "Pine Tree Trunk",
+    tiles = {"civi_pine_tree_top.png", "civi_pine_tree_top.png", "civi_pine_tree.png"},
+    groups = {tree = 1, choppy = 2, oddy_breakable_by_hand = 1, flammable = 2},
+    sounds = sounds.node_sound_wood_defaults(),
+})
+minetest.register_node("civi_core:pine_wood", {
+    description = "Pine Wood Planks",
+    tiles = {"civi_pine_wood.png"},
+    groups = {choppy = 2, oddly_breakable_by_hand = 2, flammable = 2, wood = 1},
+    sounds = sounds.node_sound_wood_defaults(),
+})
+minetest.register_node("civi_core:pine_needles", {
+    description = "Pine Needles",
+    drawtype = "allfaces_optional",
+    tiles = {"civi_pine_needles.png"},
+    paramtype = "light",
+    groups = {snappy = 3, leafdecay = 3, leaves = 1, flammable = 2},
+    sounds = sounds.node_sound_leaves_defaults(),
 })
 
 minetest.register_node("civi_core:leaves", {
@@ -668,7 +805,60 @@ minetest.register_ore({
 })
 
 -- =========================================================
--- 3. DER ASPHALT-BLOCK (Kern-Feature)
+-- 3. EINRICHTUNG & HILFSMITTEL
+-- =========================================================
+
+minetest.register_node("civi_core:bookshelf", {
+    description = "Bookshelf",
+    tiles = {"civi_wood.png", "civi_wood.png", "civi_bookshelf.png"},
+    groups = {choppy = 3, oddly_breakable_by_hand = 2, flammable = 3},
+    sounds = sounds.node_sound_wood_defaults(),
+})
+
+minetest.register_node("civi_core:ladder", {
+    description = "Wooden Ladder",
+    drawtype = "signlike",
+    tiles = {"civi_ladder_wood.png"},
+    inventory_image = "civi_ladder_wood.png",
+    wield_image = "civi_ladder_wood.png",
+    paramtype = "light",
+    paramtype2 = "wallmounted",
+    walkable = false,
+    climbable = true,
+    sunlight_propagates = true,
+    selection_box = {
+        type = "wallmounted",
+        --wall_top = = <default>
+        --wall_bottom = = <default>
+        --wall_side = = <default>
+    },
+    groups = {choppy = 2, oddly_breakable_by_hand = 3, flammable = 2, attached_node = 1},
+    sounds = sounds.node_sound_wood_defaults(),
+})
+
+minetest.register_node("civi_core:fence_wood", {
+    description = "Wooden Fence",
+    drawtype = "fencelike",
+    tiles = {"civi_fence_wood.png"},
+    inventory_image = "civi_fence_wood.png",
+    wield_image = "civi_fence_wood.png",
+    paramtype = "light",
+    sunlight_propagates = true,
+    is_ground_content = false,
+    selection_box = {
+        type = "fixed",
+        fixed = {-1/5, -1/2, -1/5, 1/5, 1/2, 1/5}
+    },
+    collision_box = {
+        type = "fixed",
+        fixed = {-1/2, -1/2, -1/2, 1/2, 1, 1/2}
+    },
+    groups = {choppy = 2, oddly_breakable_by_hand = 2, flammable = 2},
+    sounds = sounds.node_sound_wood_defaults(),
+})
+
+-- =========================================================
+-- 4. DER ASPHALT-BLOCK (Kern-Feature)
 -- =========================================================
 
 minetest.register_node("civi_core:asphalt", {
@@ -1431,6 +1621,78 @@ minetest.register_craft({
         {"civi_core:cobble", "civi_core:cobble", "civi_core:cobble"},
     }
 })
+
+-- Construction Blocks
+minetest.register_craft({
+    output = "civi_core:stone_brick 4",
+    recipe = {
+        {"civi_core:stone", "civi_core:stone"},
+        {"civi_core:stone", "civi_core:stone"},
+    }
+})
+
+minetest.register_craft({
+    output = "civi_core:brick 4",
+    recipe = {
+        {"civi_core:dirt", "civi_core:dirt"},
+        {"civi_core:dirt", "civi_core:dirt"},
+    }
+})
+
+-- Metal & Gem Blocks
+minetest.register_craft({
+    output = "civi_core:bronze_block",
+    recipe = {
+        {"civi_core:copper_ingot", "civi_core:copper_ingot", "civi_core:copper_ingot"},
+        {"civi_core:copper_ingot", "civi_core:steel_ingot", "civi_core:copper_ingot"},
+        {"civi_core:copper_ingot", "civi_core:copper_ingot", "civi_core:copper_ingot"},
+    }
+})
+
+minetest.register_craft({
+    output = "civi_core:gold_block",
+    recipe = {
+        {"civi_core:gold_ingot", "civi_core:gold_ingot", "civi_core:gold_ingot"},
+        {"civi_core:gold_ingot", "civi_core:gold_ingot", "civi_core:gold_ingot"},
+        {"civi_core:gold_ingot", "civi_core:gold_ingot", "civi_core:gold_ingot"},
+    }
+})
+
+-- Utility & Furniture
+minetest.register_craft({
+    output = "civi_core:bookshelf",
+    recipe = {
+        {"civi_core:wood", "civi_core:wood", "civi_core:wood"},
+        {"civi_core:stick", "civi_core:stick", "civi_core:stick"},
+        {"civi_core:wood", "civi_core:wood", "civi_core:wood"},
+    }
+})
+
+minetest.register_craft({
+    output = "civi_core:ladder 4",
+    recipe = {
+        {"civi_core:stick", "", "civi_core:stick"},
+        {"civi_core:stick", "civi_core:stick", "civi_core:stick"},
+        {"civi_core:stick", "", "civi_core:stick"},
+    }
+})
+
+minetest.register_craft({
+    output = "civi_core:fence_wood 2",
+    recipe = {
+        {"civi_core:stick", "civi_core:stick", "civi_core:stick"},
+        {"civi_core:stick", "civi_core:stick", "civi_core:stick"},
+    }
+})
+
+-- Wood Variant Plank Crafts
+local woods = {"acacia", "aspen", "jungle", "pine"}
+for _, wood in ipairs(woods) do
+    minetest.register_craft({
+        output = "civi_core:" .. wood .. "_wood 4",
+        recipe = {{"civi_core:" .. wood .. "_tree"}},
+    })
+end
 
 -- Crafting Logic: Progress & Achievements
 minetest.register_on_craft(function(itemstack, crafter, recipe, inventory)

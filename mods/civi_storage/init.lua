@@ -23,9 +23,9 @@ end
 minetest.register_node("civi_storage:chest", {
     description = "Civi Chest (32 Slots)",
     tiles = {
-        "default_chest_top.png", "default_chest_top.png",
-        "default_chest_side.png", "default_chest_side.png",
-        "default_chest_side.png", "default_chest_front.png"
+        "civi_chest_top.png", "civi_chest_top.png",
+        "civi_chest_side.png", "civi_chest_side.png",
+        "civi_chest_side.png", "civi_chest_front.png"
     },
     paramtype2 = "facedir",
     groups = {choppy = 2, oddly_breakable_by_hand = 2, container = 1},

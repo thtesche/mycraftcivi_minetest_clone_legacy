@@ -5,7 +5,7 @@ default = {}
 
 -- Node Aliases
 local nodes = {
-    "stone", "dirt", "dirt_with_grass", "sand", "wood", "tree", "leaves", 
+    "stone", "dirt", "dirt_with_grass", "sand", "wood",
     "glass", "ice", "snowblock", "snow", "cobble",
     "stone_with_coal", "stone_with_iron", "stone_with_copper", "stone_with_gold",
     "torch"
@@ -17,7 +17,7 @@ end
 
 -- Item Aliases
 local items = {
-    "coal_lump", "iron_lump", "copper_lump", "gold_lump", "stick", "apple"
+    "coal_lump", "iron_lump", "copper_lump", "gold_lump", "stick"
 }
 
 for _, name in ipairs(items) do

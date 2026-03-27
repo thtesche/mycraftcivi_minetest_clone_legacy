@@ -88,7 +88,19 @@ mobs:register_mob("civi_npc:lumberjack", {
         if not self.target_tree then
             if self.search_timer >= 1.0 then
                 self.search_timer = 0
-                self.target_tree = minetest.find_node_near(pos, 150, {"group:tree"})
+                local found_tree = minetest.find_node_near(pos, 150, {"group:tree"})
+                if found_tree then
+                    -- Immediately trace down to the root (lowest trunk block)
+                    for i = 1, 30 do -- Increased depth for tall trees in slopes
+                        local under = {x=found_tree.x, y=found_tree.y-1, z=found_tree.z}
+                        if minetest.get_item_group(minetest.get_node(under).name, "tree") > 0 then
+                            found_tree.y = found_tree.y - 1
+                        else
+                            break
+                        end
+                    end
+                    self.target_tree = found_tree
+                end
                 self.stuck_timer = 0 -- Start timeout for getting stuck
             end
             
@@ -103,9 +115,11 @@ mobs:register_mob("civi_npc:lumberjack", {
             return false
         end
 
-        local dist = vector.distance(pos, self.target_tree)
+        -- Use horizontal distance for approach to avoid getting stuck under tall trees
+        local dist_2d = vector.distance({x=pos.x, y=0, z=pos.z}, {x=self.target_tree.x, y=0, z=self.target_tree.z})
+        local dist_y = math.abs(pos.y - self.target_tree.y)
 
-        if dist > 2.0 then
+        if dist_2d > 1.5 or dist_y > 3.0 then
             -- 1. STILL TOO FAR AWAY: Walk towards it continuously
             local direction = vector.direction(pos, self.target_tree)
             self.object:set_yaw(minetest.dir_to_yaw(direction))
@@ -130,17 +144,7 @@ mobs:register_mob("civi_npc:lumberjack", {
             if self.chopping_timer > 2.0 then
                 self.chopping_timer = 0
                 
-                -- Improve target tree: Move to the lowest trunk block to ensure we clear the whole tree
-                local base_pos = {x=self.target_tree.x, y=self.target_tree.y, z=self.target_tree.z}
-                for i = 1, 20 do -- Max 20 blocks down
-                    local under = {x=base_pos.x, y=base_pos.y-1, z=base_pos.z}
-                    if minetest.get_item_group(minetest.get_node(under).name, "tree") > 0 then
-                        base_pos.y = base_pos.y - 1
-                    else
-                        break
-                    end
-                end
-                self.target_tree = base_pos
+                -- Area-Sweep: Start from our root-optimized target_tree
 
                 -- Area-Sweep: Increased height to 15 for larger trees
                 for y_offset = -1, 15 do

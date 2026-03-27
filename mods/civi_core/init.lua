@@ -48,16 +48,16 @@ end
 
 minetest.register_on_joinplayer(function(player)
     local name = player:get_player_name()
-    -- Configure player model and appearance
-    player:set_properties({
-        visual = "mesh",
-        mesh = "character.b3d",
-        textures = {"character.png"},
-        visual_size = {x = 1, y = 1},
-        collisionbox = {-0.3, 0.0, -0.3, 0.3, 1.7, 0.3},
-        stepheight = 0.6,
-        eye_height = 1.47,
-    })
+    -- Configure player model and appearance (handled by player_api / skinsdb)
+    -- player:set_properties({
+    --     visual = "mesh",
+    --     mesh = "character.b3d",
+    --     textures = {"character.png"},
+    --     visual_size = {x = 1, y = 1},
+    --     collisionbox = {-0.3, 0.0, -0.3, 0.3, 1.7, 0.3},
+    --     stepheight = 0.6,
+    --     eye_height = 1.47,
+    -- })
 
     -- Inventory size and starting equipment (8x4 Grid = 32 Slots)
     local inv = player:get_inventory()
@@ -68,14 +68,7 @@ minetest.register_on_joinplayer(function(player)
     end
 
 
-    -- Local animations for 1st person (arms when walking etc.)
-    player:set_local_animation(
-        {x = 0,   y = 79},  -- stand
-        {x = 168, y = 187}, -- walk
-        {x = 189, y = 198}, -- mine
-        {x = 200, y = 219}, -- walk_mine
-        30 -- animation speed
-    )
+    -- Local animations for 1st person (handled by player_api)
 
     safe_spawn(player)
 end)

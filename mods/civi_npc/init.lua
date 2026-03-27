@@ -8,9 +8,12 @@ mobs:register_mob("civi_npc:lumberjack", {
     hp_max = 20,
     collisionbox = {-0.3, -0.0, -0.3, 0.3, 1.8, 0.3},
     visual = "mesh",
-    mesh = "character.b3d", 
+    mesh = "skinsdb_3d_armor_character_5.b3d", 
     textures = {
-        {"character.png"}, 
+        "blank.png",              -- Slot 1: 64x32 base
+        "character.farmer_male.png", -- Slot 2: 64x64 overlay/modern
+        "blank.png",              -- Slot 3: Armor
+        "blank.png"               -- Slot 4: Wielded item
     },
     makes_footstep_sound = true,
     walk_velocity = 1.5,
@@ -19,6 +22,18 @@ mobs:register_mob("civi_npc:lumberjack", {
     lava_damage = 4,
     fall_damage = 0,
     view_range = 15,
+    animation = {
+        speed_normal = 30,
+        speed_run = 30,
+        stand_start = 0,
+        stand_end = 79,
+        walk_start = 168,
+        walk_end = 187,
+        run_start = 168,
+        run_end = 187,
+        punch_start = 189,
+        punch_end = 198,
+    },
 
     do_custom = function(self, dtime)
         -- Init internal inventory

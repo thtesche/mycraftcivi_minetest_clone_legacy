@@ -21,6 +21,7 @@ player_api.register_model("character.b3d", {
 })
 
 -- Update appearance when the player joins
-minetest.register_on_joinplayer(function(player)
-	player_api.set_model(player, "character.b3d")
-end)
+-- NOTE: Removed so skinsdb can handle model and texture assignment
+-- minetest.register_on_joinplayer(function(player)
+-- 	player_api.set_model(player, "character.b3d")
+-- end)

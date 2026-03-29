@@ -44,6 +44,44 @@ mobs:register_mob("civi_npc:lumberjack", {
         local pos = self.object:get_pos()
         if not pos then return false end
 
+        -- === Obstacle Clearing: Prevent Stuck by trees/leaves ===
+        self.obstacle_timer = (self.obstacle_timer or 0) + dtime
+        if self.obstacle_timer > 0.5 then
+            self.obstacle_timer = 0
+            local p = vector.round(pos)
+            local check_positions = {
+                {x=p.x, y=p.y+1, z=p.z}, -- Head level
+                {x=p.x, y=p.y+2, z=p.z}, -- Above head
+            }
+            local yaw = self.object:get_yaw()
+            if yaw then
+                local dir_x = -math.sin(yaw)
+                local dir_z = math.cos(yaw)
+                local front_p = vector.round({x=pos.x + dir_x, y=pos.y, z=pos.z + dir_z})
+                table.insert(check_positions, {x=front_p.x, y=front_p.y, z=front_p.z})
+                table.insert(check_positions, {x=front_p.x, y=front_p.y+1, z=front_p.z})
+                table.insert(check_positions, {x=front_p.x, y=front_p.y+2, z=front_p.z})
+            end
+            for _, cp in ipairs(check_positions) do
+                local node = minetest.get_node(cp)
+                if minetest.get_item_group(node.name, "tree") > 0 or minetest.get_item_group(node.name, "leaves") > 0 then
+                    if minetest.get_item_group(node.name, "tree") > 0 then
+                        local drops = minetest.get_node_drops(node.name, "")
+                        for _, item in ipairs(drops) do
+                            local stack = ItemStack(item)
+                            if minetest.get_item_group(stack:get_name(), "tree") > 0 or stack:get_name() == "civi_core:tree" then
+                                self.inv.wood = self.inv.wood + stack:get_count()
+                            end
+                        end
+                    end
+                    minetest.remove_node(cp)
+                    if self.target_tree and cp.x == self.target_tree.x and cp.y == self.target_tree.y and cp.z == self.target_tree.z then
+                        self.target_tree = nil
+                    end
+                end
+            end
+        end
+
         -- ==== 1. CHEST LOGIC ====
         if self.target_chest then
             local target_node = minetest.get_node(self.target_chest)

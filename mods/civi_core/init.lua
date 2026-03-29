@@ -225,6 +225,30 @@ minetest.register_craftitem("civi_core:coal_lump", {
     groups = {coal = 1, flammable = 1}
 })
 
+minetest.register_node("civi_core:coalblock", {
+    description = "Coal Block",
+    tiles = {"civi_coal_block.png"},
+    is_ground_content = false,
+    groups = {cracky = 3},
+    sounds = sounds.node_sound_stone_defaults(),
+})
+
+minetest.register_craft({
+    output = "civi_core:coalblock",
+    recipe = {
+        {"civi_core:coal_lump", "civi_core:coal_lump", "civi_core:coal_lump"},
+        {"civi_core:coal_lump", "civi_core:coal_lump", "civi_core:coal_lump"},
+        {"civi_core:coal_lump", "civi_core:coal_lump", "civi_core:coal_lump"},
+    }
+})
+
+minetest.register_craft({
+    output = "civi_core:coal_lump 9",
+    recipe = {
+        {"civi_core:coalblock"},
+    }
+})
+
 minetest.register_node("civi_core:stone_with_iron", {
     description = "Iron Ore",
     tiles = {"civi_stone.png^civi_mineral_iron.png"},

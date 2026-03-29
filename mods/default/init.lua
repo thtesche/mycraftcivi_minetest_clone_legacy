@@ -17,7 +17,7 @@ end
 
 -- Item Aliases
 local items = {
-    "coal_lump", "iron_lump", "copper_lump", "gold_lump", "stick"
+    "coal_lump", "iron_lump", "copper_lump", "gold_lump", "stick", "coalblock"
 }
 
 for _, name in ipairs(items) do

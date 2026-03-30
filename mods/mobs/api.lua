@@ -132,17 +132,11 @@ local node_snow = "default:snow"
 mobs.fallback_node = minetest.registered_aliases["mapgen_dirt"] or "default:dirt"
 
 mobs.mob_class = {
-	stepheight = 1.1,
-	fly_in = "air",
 	owner = "",
 	order = "",
 	jump_height = 4,
 	lifetimer = 180, -- 3 minutes
-	physical = true,
-	collisionbox = {-0.25, -0.25, -0.25, 0.25, 0.25, 0.25},
-	visual_size = {x = 1, y = 1},
 	texture_mods = "",
-	makes_footstep_sound = false,
 	view_range = 5,
 	walk_velocity = 1,
 	run_velocity = 2,
@@ -1407,7 +1401,7 @@ function mob_class:breed()
 				local pos = self.object:get_pos() ; if not pos then return end
 				local ent = self.object:get_luaentity()
 
-				pos.y = pos.y + (ent.collisionbox[2] * -1) - 0.4
+				pos.y = pos.y + ((ent.collisionbox and ent.collisionbox[2] or -0.25) * -1) - 0.4
 
 				self.object:set_pos(pos)
 
@@ -3245,6 +3239,19 @@ function mob_class:mob_activate(staticdata, def, dtime)
 			self.base_selbox[5] * .5, self.base_selbox[6] * .5}
 	end
 
+	self.hp_max = max(1, (def.hp_max or 10) * difficulty)
+	self.hp_min = max(1, (def.hp_min or 5) * difficulty)
+	self.physical = def.physical ~= false -- default to true
+	self.collide_with_objects = def.collide_with_objects ~= false -- default to true
+	self.collisionbox = def.collisionbox or {-0.25, -0.25, -0.25, 0.25, 0.25, 0.25}
+	self.selectionbox = def.selectionbox or self.collisionbox
+	self.visual = def.visual
+	self.visual_size = def.visual_size or {x = 1, y = 1}
+	self.mesh = def.mesh
+	self.makes_footstep_sound = def.makes_footstep_sound
+	self.stepheight = def.stepheight or 1.1
+	self.fly_in = def.fly_in or "air"
+
 	if self.health == 0 then
 		self.health = random(self.hp_min, self.hp_max)
 	end
@@ -3548,6 +3555,7 @@ minetest.register_entity(name, setmetatable({
 
 	initial_properties = {
 		hp_max = max(1, (def.hp_max or 10) * difficulty),
+		physical = def.physical ~= false,
 		collisionbox = collisionbox,
 		selectionbox = def.selectionbox or collisionbox,
 		visual = def.visual,
@@ -3555,7 +3563,9 @@ minetest.register_entity(name, setmetatable({
 		mesh = def.mesh,
 		textures = def.textures and def.textures[1] or {},
 		makes_footstep_sound = def.makes_footstep_sound,
+		stepheight = def.stepheight or 1.1,
 		glow = def.glow,
+		static_save = def.static_save ~= false,
 	},
 
 	type = def.type,
@@ -3575,13 +3585,6 @@ minetest.register_entity(name, setmetatable({
 	glow = def.glow,
 	lifetimer = def.lifetimer,
 	hp_min = max(1, (def.hp_min or 5) * difficulty),
-	hp_max = max(1, (def.hp_max or 10) * difficulty),
-	collisionbox = collisionbox, --def.collisionbox,
-	selectionbox = def.selectionbox or collisionbox, --def.collisionbox,
-	visual = def.visual,
-	visual_size = def.visual_size,
-	mesh = def.mesh,
-	makes_footstep_sound = def.makes_footstep_sound,
 	view_range = def.view_range,
 	walk_velocity = def.walk_velocity,
 	run_velocity = def.run_velocity,
@@ -3708,7 +3711,10 @@ end
 local function can_spawn(pos, name)
 
 	local ent = minetest.registered_entities[name]
-	local width_x = max(1, ceil(ent.collisionbox[4] - ent.collisionbox[1]))
+	local prop = ent and ent.initial_properties
+	local col = prop and prop.collisionbox or {-0.25, -0.25, -0.25, 0.25, 0.25, 0.25}
+
+	local width_x = max(1, ceil(col[4] - col[1]))
 	local min_x, max_x
 
 	if width_x % 2 == 0 then
@@ -3719,7 +3725,7 @@ local function can_spawn(pos, name)
 		min_x = -max_x
 	end
 
-	local width_z = max(1, ceil(ent.collisionbox[6] - ent.collisionbox[3]))
+	local width_z = max(1, ceil(col[6] - col[3]))
 	local min_z, max_z
 
 	if width_z % 2 == 0 then
@@ -3730,7 +3736,7 @@ local function can_spawn(pos, name)
 		min_z = -max_z
 	end
 
-	local max_y = max(0, ceil(ent.collisionbox[5] - ent.collisionbox[2]) - 1)
+	local max_y = max(0, ceil(col[5] - col[2]) - 1)
 	local pos2
 
 	for y = 0, max_y do
@@ -4016,12 +4022,14 @@ function mobs:spawn_specific(name, nodes, neighbors, min_light, max_light, inter
 		end
 
 		local ent = minetest.registered_entities[name]
+		local prop = ent and ent.initial_properties
+		local col = prop and prop.collisionbox or {-0.25, -0.25, -0.25, 0.25, 0.25, 0.25}
 
 		-- should we check mob area for obstructions ?
 		if mob_area_spawn ~= true then
 
 			-- do we have enough height clearance to spawn mob?
-			local height = max(0, ent.collisionbox[5] - ent.collisionbox[2])
+			local height = max(0, col[5] - col[2])
 
 			for n = 0, floor(height) do
 
@@ -4040,7 +4048,7 @@ function mobs:spawn_specific(name, nodes, neighbors, min_light, max_light, inter
 		if pos then
 
 			-- adjust for mob collision box
-			pos.y = pos.y + (ent.collisionbox[2] * -1) - 0.4
+			pos.y = pos.y + (col[2] * -1) - 0.4
 
 			local mob = minetest.add_entity(pos, name)
 
@@ -4122,21 +4130,21 @@ function mobs:register_arrow(name, def)
 	if not name or not def then return end -- errorcheck
 
 	minetest.register_entity(name, {
-
-		physical = def.physical or false,
-		collide_with_objects = def.collide_with_objects or false,
+		initial_properties = {
+			physical = def.physical or false,
+			collide_with_objects = def.collide_with_objects or false,
+			visual = def.visual,
+			visual_size = def.visual_size,
+			textures = def.textures,
+			collisionbox = def.collisionbox or {-.1, -.1, -.1, .1, .1, .1},
+		},
 		static_save = false,
-
-		visual = def.visual,
-		visual_size = def.visual_size,
-		textures = def.textures,
 		velocity = def.velocity,
 		hit_player = def.hit_player,
 		hit_node = def.hit_node,
 		hit_mob = def.hit_mob,
 		hit_object = def.hit_object,
 		drop = def.drop or false, -- drops arrow as registered item when true
-		collisionbox = def.collisionbox or {-.1, -.1, -.1, .1, .1, .1},
 		timer = 0,
 		lifetime = def.lifetime or 4.5,
 		switch = 0,

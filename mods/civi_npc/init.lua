@@ -87,48 +87,78 @@ mobs:register_mob("civi_npc:lumberjack", {
             local target_node = minetest.get_node(self.target_chest)
             if target_node.name ~= "civi_storage:chest" and target_node.name ~= "civi_storage:chest_double" then
                 self.target_chest = nil -- Chest was removed or invalid
-                return true
+                return false
             end
 
-            local dist = vector.distance(pos, self.target_chest)
-            if dist > 2.0 then
+            local d2d = vector.distance({x=pos.x, y=0, z=pos.z}, {x=self.target_chest.x, y=0, z=self.target_chest.z})
+            local dy = math.abs(pos.y - self.target_chest.y)
+
+            if d2d > 1.2 or dy > 3.0 then
                 -- Walk towards chest
-                local direction = vector.direction(pos, self.target_chest)
+                local direction = vector.direction({x=pos.x, y=0, z=pos.z}, {x=self.target_chest.x, y=0, z=self.target_chest.z})
                 self.object:set_yaw(minetest.dir_to_yaw(direction))
                 self:set_velocity(self.walk_velocity)
                 self:set_animation("walk")
 
                 -- Anti-Stuck Logic
                 self.stuck_timer = (self.stuck_timer or 0) + dtime
-                if self.stuck_timer > 15.0 then
+                if self.stuck_timer > 20.0 then
+                    print("[civi_npc] Lumberjack stuck at chest, resetting target")
                     self.target_chest = nil
                     self.stuck_timer = 0
                 end
             else
-                -- At chest: Deposit and Craft
+                -- At chest: Deposit and Craft Sequence (2 seconds)
                 self:set_velocity(0)
-                self:set_animation("stand")
+                self:set_animation("punch")
                 
-                local meta = minetest.get_meta(self.target_chest)
-                local inv = meta:get_inventory()
+                self.deposit_timer = (self.deposit_timer or 0) + dtime
                 
-                local wood_amount = self.inv.wood
-                if wood_amount > 0 then
-                    local half_wood = math.floor(wood_amount / 2)
-                    local boards = half_wood * 4
-                    local remaining_wood = wood_amount - half_wood
-                    
-                    if boards > 0 then
-                        inv:add_item("main", ItemStack("civi_core:wood " .. boards))
+                -- Start: Open the chest
+                if self.deposit_timer < 0.1 then
+                    local node = minetest.get_node(self.target_chest)
+                    if not self.original_chest_name then
+                        self.original_chest_name = node.name
+                        if node.name == "civi_storage:chest" or node.name == "civi_storage:chest_locked" then
+                            minetest.swap_node(self.target_chest, {name = node.name .. "_open", param2 = node.param2})
+                            minetest.sound_play("civi_chest_open", {pos = self.target_chest, gain = 0.3, max_hear_distance = 10})
+                        end
                     end
-                    if remaining_wood > 0 then
-                        inv:add_item("main", ItemStack("civi_core:tree " .. remaining_wood))
-                    end
-                    self.inv.wood = 0
                 end
-                
-                self.target_chest = nil
-                self.stuck_timer = 0
+
+                if self.deposit_timer >= 2.0 then
+                    local meta = minetest.get_meta(self.target_chest)
+                    local inv = meta:get_inventory()
+                    
+                    local wood_amount = (self.inv.wood or 0)
+                    if wood_amount > 0 then
+                        local half_wood = math.floor(wood_amount / 2)
+                        local boards = half_wood * 4
+                        local remaining_wood = wood_amount - half_wood
+                        
+                        if boards > 0 then
+                            inv:add_item("main", ItemStack("civi_core:wood " .. boards))
+                        end
+                        if remaining_wood > 0 then
+                            inv:add_item("main", ItemStack("civi_core:tree " .. remaining_wood))
+                        end
+                        self.inv.wood = 0
+                        print("[civi_npc] Lumberjack deposited wood and boards")
+                    end
+                    
+                    -- End: Close the chest
+                    if self.original_chest_name then
+                        local node = minetest.get_node(self.target_chest)
+                        minetest.swap_node(self.target_chest, {name = self.original_chest_name, param2 = node.param2})
+                        minetest.sound_play("civi_chest_close", {pos = self.target_chest, gain = 0.3, max_hear_distance = 10})
+                        self.original_chest_name = nil
+                    end
+
+                    self.target_chest = nil
+                    self.stuck_timer = 0
+                    self.deposit_timer = 0
+                    self.search_timer = 1.0 -- Force tree search in next tick
+                end
             end
             return true
         end
@@ -143,8 +173,8 @@ mobs:register_mob("civi_npc:lumberjack", {
                 self.search_timer = 0
                 local found_tree = minetest.find_node_near(pos, 150, {"group:tree"})
                 if found_tree then
-                    -- Immediately trace down to the root (lowest trunk block)
-                    for i = 1, 30 do -- Increased depth for tall trees in slopes
+                    -- Trace down to the root (lowest trunk block)
+                    for i = 1, 30 do
                         local under = {x=found_tree.x, y=found_tree.y-1, z=found_tree.z}
                         if minetest.get_item_group(minetest.get_node(under).name, "tree") > 0 then
                             found_tree.y = found_tree.y - 1
@@ -168,24 +198,27 @@ mobs:register_mob("civi_npc:lumberjack", {
             return false
         end
 
-        -- Use horizontal distance for approach to avoid getting stuck under tall trees
+        -- horizontal distance check
         local dist_2d = vector.distance({x=pos.x, y=0, z=pos.z}, {x=self.target_tree.x, y=0, z=self.target_tree.z})
         local dist_y = math.abs(pos.y - self.target_tree.y)
 
-        if dist_2d > 1.5 or dist_y > 3.0 then
-            -- 1. STILL TOO FAR AWAY: Walk towards it continuously
-            local direction = vector.direction(pos, self.target_tree)
+        if dist_2d > 0.8 then
+            -- STILL TOO FAR HORIZONTALLY: Walk towards the target's X/Z
+            local direction = vector.direction({x=pos.x, y=0, z=pos.z}, {x=self.target_tree.x, y=0, z=self.target_tree.z})
             self.object:set_yaw(minetest.dir_to_yaw(direction))
             self:set_velocity(self.walk_velocity)
             self:set_animation("walk")
-
+            
             -- Anti-Stuck Logic
             self.stuck_timer = (self.stuck_timer or 0) + dtime
             if self.stuck_timer > 15.0 then
                 self.target_tree = nil
                 self.stuck_timer = 0
             end
-
+        elseif dist_y > 15.0 then
+            -- AT THE CORRECT X/Z, but wood is too high?
+            self:set_velocity(0)
+            self:set_animation("stand")
         else
             -- 2. CLOSE ENOUGH: Start chopping!
             self:set_velocity(0)
@@ -199,8 +232,8 @@ mobs:register_mob("civi_npc:lumberjack", {
                 
                 -- Area-Sweep: Start from our root-optimized target_tree
 
-                -- Area-Sweep: Increased height to 15 for larger trees
-                for y_offset = -1, 15 do
+                -- Area-Sweep: Increased height to 30 for tall trees and floating logs
+                for y_offset = -1, 30 do
                     for x_offset = -3, 3 do
                         for z_offset = -3, 3 do
                             local check_pos = {

@@ -338,3 +338,6 @@ mobs:spawn({
 
 -- Spawn egg for the inventory
 mobs:register_egg("civi_npc:lumberjack", "Lumberjack (myCraftCivi)", "civi_wood.png", 1)
+
+-- Load Hut spawning logic
+dofile(minetest.get_modpath("civi_npc") .. "/huts.lua")

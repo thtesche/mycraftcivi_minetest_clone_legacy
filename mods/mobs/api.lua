@@ -3545,6 +3545,19 @@ minetest.register_entity(name, setmetatable({
 
 	stepheight = def.stepheight,
 	name = name,
+
+	initial_properties = {
+		hp_max = max(1, (def.hp_max or 10) * difficulty),
+		collisionbox = collisionbox,
+		selectionbox = def.selectionbox or collisionbox,
+		visual = def.visual,
+		visual_size = def.visual_size,
+		mesh = def.mesh,
+		textures = def.textures and def.textures[1] or {},
+		makes_footstep_sound = def.makes_footstep_sound,
+		glow = def.glow,
+	},
+
 	type = def.type,
 	attack_type = def.attack_type,
 	fly = def.fly,

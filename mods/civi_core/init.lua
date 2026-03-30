@@ -770,6 +770,7 @@ minetest.register_node("civi_core:water_flowing", {
 minetest.register_alias("mapgen_stone",          "civi_core:stone")
 minetest.register_alias("mapgen_dirt",           "civi_core:dirt")
 minetest.register_alias("mapgen_dirt_with_grass","civi_core:dirt_with_grass")
+minetest.register_alias("mapgen_river_water_source",   "civi_core:water_source")
 minetest.register_alias("mapgen_water_source",   "civi_core:water_source")
 minetest.register_alias("mapgen_sand",           "civi_core:sand")
 minetest.register_alias("mapgen_ice",            "civi_core:ice")

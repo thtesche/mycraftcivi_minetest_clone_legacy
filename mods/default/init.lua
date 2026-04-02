@@ -6,6 +6,7 @@ default = {}
 -- Node Aliases
 local nodes = {
     "stone", "dirt", "dirt_with_grass", "sand", "wood",
+    "acacia_wood", "junglewood", "pine_wood", "aspen_wood",
     "glass", "ice", "snowblock", "snow", "cobble",
     "stone_with_coal", "stone_with_iron", "stone_with_copper", "stone_with_gold",
     "torch"
@@ -15,6 +16,10 @@ for _, name in ipairs(nodes) do
     minetest.register_alias("default:" .. name, "civi_core:" .. name)
 end
 
+minetest.register_alias("default:steel_block", "civi_core:steel_block")
+minetest.register_alias("default:obsidian", "civi_core:obsidian")
+minetest.register_alias("default:obsidian_glass", "civi_core:obsidian_glass")
+
 -- Item Aliases
 local items = {
     "coal_lump", "iron_lump", "copper_lump", "gold_lump", "stick", "coalblock"
@@ -23,6 +28,8 @@ local items = {
 for _, name in ipairs(items) do
     minetest.register_alias("default:" .. name, "civi_core:" .. name)
 end
+
+minetest.register_alias("default:steel_ingot", "civi_core:steel_ingot")
 
 -- Sound Helpers (Proxy to civi_core sounds if available)
 -- These are expected by many mods from minetest_game
@@ -76,5 +83,25 @@ default.node_sound_water_defaults = function(tbl)
     return {}
 end
 
-print("[Default Shim] Loaded with Sound Helpers.")
+default.node_sound_metal_defaults = function(tbl)
+    if _G.sounds and sounds.node_sound_metal_defaults then return sounds.node_sound_metal_defaults(tbl) end
+    return {}
+end
+
+default.node_sound_gravel_defaults = function(tbl)
+    if _G.sounds and sounds.node_sound_gravel_defaults then return sounds.node_sound_gravel_defaults(tbl) end
+    return {}
+end
+
+-- General functions
+function default.can_interact_with_node(player, pos)
+	if player and player:get_player_name() then
+		if minetest.check_player_privs(player, "protection_bypass") then
+			return true
+		end
+	end
+	return not minetest.is_protected(pos, player and player:get_player_name() or "")
+end
+
+print("[Default Shim] Loaded.")
 

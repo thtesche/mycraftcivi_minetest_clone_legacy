@@ -171,6 +171,24 @@ function sounds.node_sound_water_defaults(tbl)
     return sounds.node_sound_defaults(tbl)
 end
 
+function sounds.node_sound_metal_defaults(tbl)
+    tbl = tbl or {}
+    tbl.footstep = tbl.footstep or {name = "default_metal_footstep", gain = 0.25}
+    tbl.dig = tbl.dig or {name = "default_dig_metal", gain = 0.5}
+    tbl.dug = tbl.dug or {name = "default_dug_metal", gain = 0.5}
+    tbl.place = tbl.place or {name = "default_place_node_metal", gain = 0.5}
+    return sounds.node_sound_defaults(tbl)
+end
+
+function sounds.node_sound_gravel_defaults(tbl)
+    tbl = tbl or {}
+    tbl.footstep = tbl.footstep or {name = "default_gravel_footstep", gain = 0.3}
+    tbl.dig = tbl.dig or {name = "default_gravel_dig", gain = 0.35}
+    tbl.dug = tbl.dug or {name = "default_gravel_dug", gain = 0.35}
+    tbl.place = tbl.place or {name = "default_place_node", gain = 1.0}
+    return sounds.node_sound_defaults(tbl)
+end
+
 
 -- =========================================================
 -- 1. TERRAIN-BLÖCKE (werden vom Welt-Generator benötigt)
@@ -260,6 +278,44 @@ minetest.register_node("civi_core:stone_with_iron", {
 minetest.register_craftitem("civi_core:iron_lump", {
     description = "Iron Lump",
     inventory_image = "civi_iron_lump.png",
+})
+
+minetest.register_craftitem("civi_core:steel_ingot", {
+    description = "Steel Ingot",
+    inventory_image = "civi_steel_ingot.png",
+})
+
+minetest.register_node("civi_core:steel_block", {
+    description = "Steel Block",
+    tiles = {"civi_steel_block.png"},
+    is_ground_content = false,
+    groups = {cracky = 1, level = 2},
+    sounds = sounds.node_sound_stone_defaults(),
+})
+
+minetest.register_craft({
+    type = "cooking",
+    output = "civi_core:steel_ingot",
+    recipe = "civi_core:iron_lump",
+})
+
+minetest.register_node("civi_core:obsidian", {
+    description = "Obsidian",
+    tiles = {"civi_obsidian.png"},
+    is_ground_content = false,
+    groups = {cracky = 1, level = 2},
+    sounds = sounds.node_sound_stone_defaults(),
+})
+
+minetest.register_node("civi_core:obsidian_glass", {
+    description = "Obsidian Glass",
+    drawtype = "glasslike",
+    tiles = {"civi_obsidian_glass.png"},
+    paramtype = "light",
+    sunlight_propagates = true,
+    use_texture_alpha = "clip",
+    groups = {snappy = 2, cracky = 3, obsidian = 1},
+    sounds = sounds.node_sound_glass_defaults(),
 })
 
 minetest.register_node("civi_core:stone_with_copper", {

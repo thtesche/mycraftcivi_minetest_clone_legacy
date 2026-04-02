@@ -21,7 +21,10 @@ mobs:register_mob("civi_npc:lumberjack", {
     water_damage = 0,
     lava_damage = 4,
     fall_damage = 0,
-    view_range = 15,
+    pathfinding = 2,
+    jump_height = 1.6,
+    jump_chance = 80,
+    can_leap = true,
     animation = {
         speed_normal = 30,
         speed_run = 30,
@@ -44,7 +47,7 @@ mobs:register_mob("civi_npc:lumberjack", {
         local pos = self.object:get_pos()
         if not pos then return false end
 
-        -- === Obstacle Clearing: Prevent Stuck by trees/leaves ===
+        -- === Obstacle Logic: Prevent Stuck by trees/leaves/fences ===
         self.obstacle_timer = (self.obstacle_timer or 0) + dtime
         if self.obstacle_timer > 0.5 then
             self.obstacle_timer = 0
@@ -64,6 +67,8 @@ mobs:register_mob("civi_npc:lumberjack", {
             end
             for _, cp in ipairs(check_positions) do
                 local node = minetest.get_node(cp)
+                
+                -- 1. Tree/Leaves Clearing
                 if minetest.get_item_group(node.name, "tree") > 0 or minetest.get_item_group(node.name, "leaves") > 0 then
                     if minetest.get_item_group(node.name, "tree") > 0 then
                         local drops = minetest.get_node_drops(node.name, "")
@@ -79,6 +84,20 @@ mobs:register_mob("civi_npc:lumberjack", {
                         self.target_tree = nil
                     end
                 end
+
+                -- 2. Gate interaction: Open closed gates
+                if minetest.get_item_group(node.name, "gate") > 0 then
+                    -- Check if it's a closed gate (usually looks like *_closed)
+                    if node.name:find("_closed") then
+                        -- Use the doors mod toggle function (requires doors to be loaded)
+                        if doors and doors.door_toggle then
+                            doors.door_toggle(cp, node, self.object)
+                        end
+                    end
+                end
+
+                -- 3. Fences: The pathfinding (pathfinding=2) and jump_height (1.6) 
+                -- will handle jumping over or avoiding fences. We do NOT remove them.
             end
         end
 
@@ -99,6 +118,7 @@ mobs:register_mob("civi_npc:lumberjack", {
                 self.object:set_yaw(minetest.dir_to_yaw(direction))
                 self:set_velocity(self.walk_velocity)
                 self:set_animation("walk")
+                self:do_jump()
 
                 -- Anti-Stuck Logic
                 self.stuck_timer = (self.stuck_timer or 0) + dtime
@@ -208,6 +228,7 @@ mobs:register_mob("civi_npc:lumberjack", {
             self.object:set_yaw(minetest.dir_to_yaw(direction))
             self:set_velocity(self.walk_velocity)
             self:set_animation("walk")
+            self:do_jump()
             
             -- Anti-Stuck Logic
             self.stuck_timer = (self.stuck_timer or 0) + dtime

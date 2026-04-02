@@ -927,7 +927,7 @@ minetest.register_node("civi_core:fence_wood", {
         type = "fixed",
         fixed = {-1/2, -1/2, -1/2, 1/2, 1, 1/2}
     },
-    groups = {choppy = 2, oddly_breakable_by_hand = 2, flammable = 2},
+    groups = {choppy = 2, oddly_breakable_by_hand = 2, flammable = 2, fence = 1},
     sounds = sounds.node_sound_wood_defaults(),
 })
 

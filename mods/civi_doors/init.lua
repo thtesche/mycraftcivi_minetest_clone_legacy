@@ -796,7 +796,7 @@ function doors.register_fencegate(name, def)
 		is_ground_content = false,
 		drop = name .. "_closed",
 		connect_sides = {"left", "right"},
-		groups = def.groups,
+		groups = table.copy(def.groups or {}),
 		sounds = def.sounds,
 		on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
 			local node_def = minetest.registered_nodes[node.name]
@@ -826,6 +826,7 @@ function doors.register_fencegate(name, def)
 	end
 
 	fence.groups.fence = 1
+	fence.groups.gate = 1
 
 	local fence_closed = table.copy(fence)
 	fence_closed.mesh = "doors_fencegate_closed.obj"

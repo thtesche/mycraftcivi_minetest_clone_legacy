@@ -127,3 +127,19 @@ function civi_weather.get(player)
 		}
 	}
 end
+
+-- Test & Informational command
+minetest.register_chatcommand("weather_status", {
+	params = "",
+	description = "Show current weather status",
+	func = function(name)
+		local player = minetest.get_player_by_name(name)
+		if not player then return false, "Player not found" end
+		local params = civi_weather.get(player)
+		local msg = "[Weather Status]\n"
+		msg = msg .. "- Density: " .. string.format("%.2f", params.clouds.density) .. " (0-1)\n"
+		msg = msg .. "- Thickness: " .. params.clouds.thickness .. "\n"
+		msg = msg .. "- Speed: X=" .. string.format("%.2f", params.clouds.speed.x) .. ", Z=" .. string.format("%.2f", params.clouds.speed.z)
+		return true, msg
+	end,
+})

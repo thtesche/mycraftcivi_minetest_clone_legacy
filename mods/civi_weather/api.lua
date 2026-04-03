@@ -1,11 +1,7 @@
 local CYCLE = 8 -- Time period of cyclic clouds update in seconds
 
+-- civi_weather API initialized
 civi_weather = {}
-
--- default implementation is empty
-function civi_weather.get(player)
-	return {}
-end
 
 local function do_update()
 	for _, player in ipairs(minetest.get_connected_players()) do

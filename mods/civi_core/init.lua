@@ -282,6 +282,76 @@ minetest.register_node("civi_core:dry_shrub", {
     sounds = sounds.node_sound_leaves_defaults(),
 })
 
+minetest.register_node("civi_core:grass", {
+    description = "Grass",
+    drawtype = "plantlike",
+    tiles = {"civi_grass_3.png"}, -- default to middle height
+    inventory_image = "civi_grass_3.png",
+    paramtype = "light",
+    walkable = false,
+    buildable_to = true,
+    groups = {snappy = 3, flammable = 3, attached_node = 1, grass = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
+    selection_box = {
+        type = "fixed",
+        fixed = {-6 / 16, -0.5, -6 / 16, 6 / 16, 0.5, 6 / 16},
+    },
+})
+
+for i = 1, 5 do
+    minetest.register_node("civi_core:grass_" .. i, {
+        description = "Grass " .. i,
+        drawtype = "plantlike",
+        tiles = {"civi_grass_" .. i .. ".png"},
+        inventory_image = "civi_grass_" .. i .. ".png",
+        paramtype = "light",
+        walkable = false,
+        buildable_to = true,
+        groups = {snappy = 3, flammable = 3, attached_node = 1, grass = 1, not_in_creative_inventory = 1},
+        sounds = sounds.node_sound_leaves_defaults(),
+        selection_box = {
+            type = "fixed",
+            fixed = {-6 / 16, -0.5, -6 / 16, 6 / 16, -0.5 + (i * 0.2), 6 / 16},
+        },
+    })
+end
+
+for i = 1, 3 do
+    minetest.register_node("civi_core:fern_" .. i, {
+        description = "Fern " .. i,
+        drawtype = "plantlike",
+        tiles = {"civi_fern_" .. i .. ".png"},
+        inventory_image = "civi_fern_" .. i .. ".png",
+        paramtype = "light",
+        walkable = false,
+        buildable_to = true,
+        groups = {snappy = 3, flammable = 3, attached_node = 1, fern = 1},
+        sounds = sounds.node_sound_leaves_defaults(),
+        selection_box = {
+            type = "fixed",
+            fixed = {-6 / 16, -0.5, -6 / 16, 6 / 16, -0.5 + (i * 0.3), 6 / 16},
+        },
+    })
+end
+
+for i = 1, 3 do
+    minetest.register_node("civi_core:marram_grass_" .. i, {
+        description = "Marram Grass " .. i,
+        drawtype = "plantlike",
+        tiles = {"civi_marram_grass_" .. i .. ".png"},
+        inventory_image = "civi_marram_grass_" .. i .. ".png",
+        paramtype = "light",
+        walkable = false,
+        buildable_to = true,
+        groups = {snappy = 3, flammable = 3, attached_node = 1, grass = 1},
+        sounds = sounds.node_sound_leaves_defaults(),
+        selection_box = {
+            type = "fixed",
+            fixed = {-6 / 16, -0.5, -6 / 16, 6 / 16, -0.5 + (i * 0.3), 6 / 16},
+        },
+    })
+end
+
 minetest.register_node("civi_core:junglegrass", {
     description = "Jungle Grass",
     drawtype = "plantlike",
@@ -318,6 +388,58 @@ minetest.register_node("civi_core:bush_leaves", {
     groups = {snappy = 3, flammable = 2, leaves = 1},
     sounds = sounds.node_sound_leaves_defaults(),
 })
+
+minetest.register_node("civi_core:blueberry_bush_leaves", {
+    description = "Blueberry Bush Leaves",
+    drawtype = "allfaces_optional",
+    tiles = {"civi_blueberry_bush_leaves.png"},
+    paramtype = "light",
+    groups = {snappy = 3, flammable = 2, leaves = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
+})
+
+minetest.register_node("civi_core:blueberry_bush_leaves_with_berries", {
+    description = "Blueberry Bush Leaves with Berries",
+    drawtype = "allfaces_optional",
+    tiles = {"civi_blueberry_bush_leaves.png^civi_blueberry_overlay.png"},
+    paramtype = "light",
+    groups = {snappy = 3, flammable = 2, leaves = 1, food = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
+    on_use = minetest.item_eat(1),
+})
+
+-- BUSH SAPLINGS
+local function register_bush_sapling(name, desc, texture, schematic)
+    minetest.register_node("civi_core:" .. name .. "_sapling", {
+        description = desc .. " Sapling",
+        drawtype = "plantlike",
+        tiles = {texture},
+        inventory_image = texture,
+        wield_image = texture,
+        paramtype = "light",
+        sunlight_propagates = true,
+        walkable = false,
+        selection_box = {
+            type = "fixed",
+            fixed = {-4 / 16, -0.5, -4 / 16, 4 / 16, 0, 4 / 16}
+        },
+        groups = {snappy = 2, dig_immediate = 3, flammable = 2, sapling = 1, attached_node = 1},
+        sounds = sounds.node_sound_leaves_defaults(),
+        on_construct = function(pos)
+            minetest.get_node_timer(pos):start(math.random(300, 1200))
+        end,
+        on_timer = function(pos)
+            minetest.place_schematic({x = pos.x - 1, y = pos.y - 1, z = pos.z - 1},
+                minetest.get_modpath("civi_core") .. "/schematics/" .. schematic, "random", nil, false)
+            return false
+        end,
+    })
+end
+
+register_bush_sapling("bush", "Bush", "civi_bush_sapling.png", "bush.mts")
+register_bush_sapling("acacia_bush", "Acacia Bush", "civi_acacia_bush_sapling.png", "acacia_bush.mts")
+register_bush_sapling("pine_bush", "Pine Bush", "civi_pine_bush_sapling.png", "pine_bush.mts")
+register_bush_sapling("blueberry_bush", "Blueberry Bush", "civi_blueberry_bush_sapling.png", "blueberry_bush.mts")
 
 minetest.register_node("civi_core:bush_stem", {
     description = "Bush Stem",
@@ -384,6 +506,58 @@ minetest.register_node("civi_core:pine_bush_stem", {
         fixed = {-1 / 16, -0.5, -1 / 16, 1 / 16, 0.5, 1 / 16},
     },
 })
+
+minetest.register_node("civi_core:blueberry_bush_leaves", {
+    description = "Blueberry Bush Leaves",
+    drawtype = "allfaces_optional",
+    tiles = {"civi_blueberry_bush_leaves.png"},
+    paramtype = "light",
+    groups = {snappy = 3, flammable = 2, leaves = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
+})
+
+minetest.register_node("civi_core:blueberry_bush_leaves_with_berries", {
+    description = "Blueberry Bush Leaves with Berries",
+    drawtype = "allfaces_optional",
+    tiles = {"civi_blueberry_bush_leaves.png^civi_blueberry_overlay.png"},
+    paramtype = "light",
+    groups = {snappy = 3, flammable = 2, leaves = 1, food = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
+    on_use = minetest.item_eat(1),
+})
+
+-- BUSH SAPLINGS
+local function register_bush_sapling(name, desc, texture, schematic)
+    minetest.register_node("civi_core:" .. name .. "_sapling", {
+        description = desc .. " Sapling",
+        drawtype = "plantlike",
+        tiles = {texture},
+        inventory_image = texture,
+        wield_image = texture,
+        paramtype = "light",
+        sunlight_propagates = true,
+        walkable = false,
+        selection_box = {
+            type = "fixed",
+            fixed = {-4 / 16, -0.5, -4 / 16, 4 / 16, 0, 4 / 16}
+        },
+        groups = {snappy = 2, dig_immediate = 3, flammable = 2, sapling = 1, attached_node = 1},
+        sounds = sounds.node_sound_leaves_defaults(),
+        on_construct = function(pos)
+            minetest.get_node_timer(pos):start(math.random(300, 1200))
+        end,
+        on_timer = function(pos)
+            minetest.place_schematic({x = pos.x - 1, y = pos.y - 1, z = pos.z - 1},
+                minetest.get_modpath("civi_core") .. "/schematics/" .. schematic, "random", nil, false)
+            return false
+        end,
+    })
+end
+
+register_bush_sapling("bush", "Bush", "civi_bush_sapling.png", "bush.mts")
+register_bush_sapling("acacia_bush", "Acacia Bush", "civi_acacia_bush_sapling.png", "acacia_bush.mts")
+register_bush_sapling("pine_bush", "Pine Bush", "civi_pine_bush_sapling.png", "pine_bush.mts")
+register_bush_sapling("blueberry_bush", "Blueberry Bush", "civi_blueberry_bush_sapling.png", "blueberry_bush.mts")
 
 minetest.register_node("civi_core:gravel", {
     description = "Gravel",
@@ -1694,9 +1868,22 @@ minetest.register_alias("default:bush_sapling", "civi_core:sapling")
 minetest.register_alias("default:acacia_bush_sapling", "civi_core:acacia_sapling")
 minetest.register_alias("default:pine_bush_sapling", "civi_core:pine_sapling")
 
--- Flowers/Mushrooms Aliases
+-- Flowers/Mushrooms/Vegetation Aliases
 minetest.register_alias("flowers:mushroom_red", "civi_core:mushroom_red")
 minetest.register_alias("flowers:mushroom_brown", "civi_core:mushroom_brown")
+minetest.register_alias("default:blueberry_bush_sapling", "civi_core:blueberry_bush_sapling")
+minetest.register_alias("default:blueberry_bush_leaves", "civi_core:blueberry_bush_leaves")
+minetest.register_alias("default:blueberry_bush_leaves_with_berries", "civi_core:blueberry_bush_leaves_with_berries")
+minetest.register_alias("default:fern_1", "civi_core:fern_1")
+minetest.register_alias("default:fern_2", "civi_core:fern_2")
+minetest.register_alias("default:fern_3", "civi_core:fern_3")
+minetest.register_alias("default:marram_grass_1", "civi_core:marram_grass_1")
+minetest.register_alias("default:marram_grass_2", "civi_core:marram_grass_2")
+minetest.register_alias("default:marram_grass_3", "civi_core:marram_grass_3")
+
+for i = 1, 5 do
+    minetest.register_alias("default:grass_" .. i, "civi_core:grass_" .. i)
+end
 
 -- Apple Tree (Grassland)
 minetest.register_decoration({
@@ -1830,6 +2017,56 @@ minetest.register_decoration({
     decoration = "civi_core:junglegrass",
 })
 
+-- More Grass and Ferns
+minetest.register_decoration({
+    name = "civi_core:grass",
+    deco_type = "simple",
+    place_on = {"civi_core:dirt_with_grass", "civi_core:dirt"},
+    sidelen = 16,
+    noise_params = {offset = 0, scale = 0.1, spread = {x = 100, y = 100, z = 100}, seed = 422, octaves = 3, persist = 0.66},
+    biomes = {"grassland", "deciduous_forest"},
+    y_max = 31000,
+    y_min = 1,
+    decoration = {"civi_core:grass_1", "civi_core:grass_2", "civi_core:grass_3", "civi_core:grass_4", "civi_core:grass_5"},
+})
+
+minetest.register_decoration({
+    name = "civi_core:ferns",
+    deco_type = "simple",
+    place_on = {"civi_core:dirt_with_rainforest_litter", "civi_core:dirt_with_coniferous_litter"},
+    sidelen = 16,
+    noise_params = {offset = 0, scale = 0.05, spread = {x = 100, y = 100, z = 100}, seed = 588, octaves = 3, persist = 0.66},
+    biomes = {"rainforest", "coniferous_forest"},
+    y_max = 31000,
+    y_min = 1,
+    decoration = {"civi_core:fern_1", "civi_core:fern_2", "civi_core:fern_3"},
+})
+
+minetest.register_decoration({
+    name = "civi_core:marram_grass",
+    deco_type = "simple",
+    place_on = {"civi_core:sand"},
+    sidelen = 16,
+    noise_params = {offset = -0.01, scale = 0.05, spread = {x = 100, y = 100, z = 100}, seed = 882, octaves = 3, persist = 0.66},
+    biomes = {"beach"},
+    y_max = 5,
+    y_min = 1,
+    decoration = {"civi_core:marram_grass_1", "civi_core:marram_grass_2", "civi_core:marram_grass_3"},
+})
+
+minetest.register_decoration({
+    name = "civi_core:blueberry_bush",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_coniferous_litter", "civi_core:dirt_with_grass"},
+    sidelen = 16,
+    noise_params = {offset = -0.004, scale = 0.01, spread = {x = 100, y = 100, z = 100}, seed = 661, octaves = 3, persist = 0.66},
+    biomes = {"coniferous_forest", "deciduous_forest"},
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/blueberry_bush.mts",
+    flags = "place_center_x, place_center_z",
+})
+
 -- LOGS (Fallen trees)
 minetest.register_decoration({
     name = "civi_core:apple_log",
@@ -1952,6 +2189,56 @@ minetest.register_decoration({
     y_max = 1,
     y_min = 0,
     schematic = minetest.get_modpath("civi_core") .. "/schematics/papyrus_on_dirt.mts",
+})
+
+-- More Grass and Ferns
+minetest.register_decoration({
+    name = "civi_core:grass",
+    deco_type = "simple",
+    place_on = {"civi_core:dirt_with_grass", "civi_core:dirt"},
+    sidelen = 16,
+    noise_params = {offset = 0, scale = 0.1, spread = {x = 100, y = 100, z = 100}, seed = 422, octaves = 3, persist = 0.66},
+    biomes = {"grassland", "deciduous_forest"},
+    y_max = 31000,
+    y_min = 1,
+    decoration = {"civi_core:grass_1", "civi_core:grass_2", "civi_core:grass_3", "civi_core:grass_4", "civi_core:grass_5"},
+})
+
+minetest.register_decoration({
+    name = "civi_core:ferns",
+    deco_type = "simple",
+    place_on = {"civi_core:dirt_with_rainforest_litter", "civi_core:dirt_with_coniferous_litter"},
+    sidelen = 16,
+    noise_params = {offset = 0, scale = 0.05, spread = {x = 100, y = 100, z = 100}, seed = 588, octaves = 3, persist = 0.66},
+    biomes = {"rainforest", "coniferous_forest"},
+    y_max = 31000,
+    y_min = 1,
+    decoration = {"civi_core:fern_1", "civi_core:fern_2", "civi_core:fern_3"},
+})
+
+minetest.register_decoration({
+    name = "civi_core:marram_grass",
+    deco_type = "simple",
+    place_on = {"civi_core:sand"},
+    sidelen = 16,
+    noise_params = {offset = -0.01, scale = 0.05, spread = {x = 100, y = 100, z = 100}, seed = 882, octaves = 3, persist = 0.66},
+    biomes = {"beach"},
+    y_max = 5,
+    y_min = 1,
+    decoration = {"civi_core:marram_grass_1", "civi_core:marram_grass_2", "civi_core:marram_grass_3"},
+})
+
+minetest.register_decoration({
+    name = "civi_core:blueberry_bush",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_coniferous_litter", "civi_core:dirt_with_grass"},
+    sidelen = 16,
+    noise_params = {offset = -0.004, scale = 0.01, spread = {x = 100, y = 100, z = 100}, seed = 661, octaves = 3, persist = 0.66},
+    biomes = {"coniferous_forest", "deciduous_forest"},
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/blueberry_bush.mts",
+    flags = "place_center_x, place_center_z",
 })
 
 -- Die alte Strand-Dekoration wird durch das Biome ersetzt

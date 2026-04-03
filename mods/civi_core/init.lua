@@ -929,6 +929,12 @@ minetest.register_node("civi_core:acacia_leaves", {
     tiles = {"civi_acacia_leaves.png"},
     paramtype = "light",
     groups = {snappy = 3, leafdecay = 3, leaves = 1, flammable = 2},
+    drop = {
+        max_items = 1,
+        items = {
+            {items = {"civi_core:acacia_sapling"}, rarity = 20},
+        }
+    },
     sounds = sounds.node_sound_leaves_defaults(),
 })
 
@@ -953,6 +959,12 @@ minetest.register_node("civi_core:aspen_leaves", {
     tiles = {"civi_aspen_leaves.png"},
     paramtype = "light",
     groups = {snappy = 3, leafdecay = 3, leaves = 1, flammable = 2},
+    drop = {
+        max_items = 1,
+        items = {
+            {items = {"civi_core:aspen_sapling"}, rarity = 20},
+        }
+    },
     sounds = sounds.node_sound_leaves_defaults(),
 })
 
@@ -977,6 +989,12 @@ minetest.register_node("civi_core:jungleleaves", {
     tiles = {"civi_jungleleaves.png"},
     paramtype = "light",
     groups = {snappy = 3, leafdecay = 3, leaves = 1, flammable = 2},
+    drop = {
+        max_items = 1,
+        items = {
+            {items = {"civi_core:jungle_sapling"}, rarity = 20},
+        }
+    },
     sounds = sounds.node_sound_leaves_defaults(),
 })
 
@@ -1001,6 +1019,12 @@ minetest.register_node("civi_core:pine_needles", {
     tiles = {"civi_pine_needles.png"},
     paramtype = "light",
     groups = {snappy = 3, leafdecay = 3, leaves = 1, flammable = 2},
+    drop = {
+        max_items = 1,
+        items = {
+            {items = {"civi_core:pine_sapling"}, rarity = 20},
+        }
+    },
     sounds = sounds.node_sound_leaves_defaults(),
 })
 

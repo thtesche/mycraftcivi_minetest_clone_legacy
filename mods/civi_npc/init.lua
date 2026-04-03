@@ -1,6 +1,15 @@
 print("[myCraftCivi] Loading civi_npc...")
 
 -- Register the Lumberjack mob
+-- Table to map tree trunks to their respective saplings for smart replanting
+local trunk_to_sapling = {
+    ["civi_core:tree"] = "civi_core:sapling",
+    ["civi_core:acacia_tree"] = "civi_core:acacia_sapling",
+    ["civi_core:aspen_tree"] = "civi_core:aspen_sapling",
+    ["civi_core:jungletree"] = "civi_core:jungle_sapling",
+    ["civi_core:pine_tree"] = "civi_core:pine_sapling",
+}
+
 -- Utility: Find a valid air node next to a target where the NPC can stand
 local function find_standing_spot(target_pos)
     local neighbor_offsets = {
@@ -69,9 +78,13 @@ mobs:register_mob("civi_npc:lumberjack", {
     do_custom = function(self, dtime)
         -- Init internal state
         if not self.inv then
-            self.inv = { wood = 0, saplings = 0 }
+            self.inv = { wood = 0, saplings = {} }
             self.blacklist = {} -- [pos_hash] = expiration_time
             self.target_failures = 0
+        end
+        -- Migration guard: convert old number-format saplings to the new table format
+        if type(self.inv.saplings) == "number" then
+            self.inv.saplings = {}
         end
         self.greedy_timer = self.greedy_timer or 0
         self.blacklist = self.blacklist or {}
@@ -126,6 +139,14 @@ mobs:register_mob("civi_npc:lumberjack", {
                             self.inv.wood = 0
                         end
 
+                        -- Deposit all saplings
+                        for name, count in pairs(self.inv.saplings) do
+                            if count > 0 then
+                                inv:add_item("main", ItemStack(name .. " " .. count))
+                                self.inv.saplings[name] = 0
+                            end
+                        end
+
                         if self.original_chest_name then
                             local node = minetest.get_node(self.target_chest)
                             minetest.swap_node(self.target_chest, {name = self.original_chest_name, param2 = node.param2})
@@ -169,7 +190,8 @@ mobs:register_mob("civi_npc:lumberjack", {
                                             if minetest.get_item_group(stack:get_name(), "tree") > 0 or stack:get_name() == "civi_core:tree" then
                                                 self.inv.wood = self.inv.wood + stack:get_count()
                                             elseif minetest.get_item_group(stack:get_name(), "sapling") > 0 or stack:get_name() == "civi_core:sapling" then
-                                                self.inv.saplings = self.inv.saplings + stack:get_count()
+                                                local name = stack:get_name()
+                                                self.inv.saplings[name] = (self.inv.saplings[name] or 0) + stack:get_count()
                                             end
                                         end
                                         minetest.remove_node(check_pos)
@@ -178,7 +200,8 @@ mobs:register_mob("civi_npc:lumberjack", {
                                         for _, item in ipairs(drops) do
                                             local stack = ItemStack(item)
                                             if minetest.get_item_group(stack:get_name(), "sapling") > 0 or stack:get_name() == "civi_core:sapling" then
-                                                self.inv.saplings = self.inv.saplings + stack:get_count()
+                                                local name = stack:get_name()
+                                                self.inv.saplings[name] = (self.inv.saplings[name] or 0) + stack:get_count()
                                             else minetest.add_item(check_pos, item) end
                                         end
                                         minetest.remove_node(check_pos)
@@ -186,6 +209,30 @@ mobs:register_mob("civi_npc:lumberjack", {
                                 end
                             end
                         end
+                        
+                        -- Smart Replanting
+                        local sapling_to_plant = trunk_to_sapling[tnode.name] or "civi_core:sapling"
+                        local pos_below = {x=self.target_tree.x, y=self.target_tree.y-1, z=self.target_tree.z}
+                        local node_below = minetest.get_node(pos_below)
+                        if minetest.get_item_group(node_below.name, "soil") > 0 then
+                            -- Check if we have the specific sapling
+                            if (self.inv.saplings[sapling_to_plant] or 0) > 0 then
+                                minetest.set_node(self.target_tree, {name = sapling_to_plant})
+                                self.inv.saplings[sapling_to_plant] = self.inv.saplings[sapling_to_plant] - 1
+                                minetest.sound_play("default_place_node", {pos = self.target_tree, gain = 0.5})
+                            else
+                                -- Fallback to ANY sapling in the table
+                                for s_name, count in pairs(self.inv.saplings) do
+                                    if count > 0 then
+                                        minetest.set_node(self.target_tree, {name = s_name})
+                                        self.inv.saplings[s_name] = self.inv.saplings[s_name] - 1
+                                        minetest.sound_play("default_place_node", {pos = self.target_tree, gain = 0.5})
+                                        break
+                                    end
+                                end
+                            end
+                        end
+
                         self.target_tree = nil
                         self.stand_target = nil
                         self.search_timer = 1.1
@@ -283,82 +330,6 @@ mobs:register_mob("civi_npc:lumberjack", {
         end
 
         -- ==== 1.5 GREEDY FALLBACK MOVEMENT ====
-        if target and (not self.path_way or #self.path_way == 0) and (self.greedy_timer or 0) > 0 then
-            self.greedy_timer = self.greedy_timer - dtime
-            local direction = vector.direction({x=pos.x, y=0, z=pos.z}, {x=target.x, y=0, z=target.z})
-            self.object:set_yaw(minetest.dir_to_yaw(direction))
-            self:set_velocity(self.walk_velocity)
-            self:set_animation("walk")
-            self:do_jump()
-            
-            -- Stuck detection for greedy mode
-            self.stuck_timer = (self.stuck_timer or 0) + dtime
-            if self.stuck_timer > 2.0 then
-                self.target_tree = nil
-                self.stand_target = nil
-                self.path_way = nil
-                self.chopping_timer = 0
-            end
-        end
-
-        -- ==== 2. CHEST LOGIC (Interaction only) ====
-        if self.target_chest then
-            local target_node = minetest.get_node(self.target_chest)
-            if target_node.name ~= "civi_storage:chest" and target_node.name ~= "civi_storage:chest_locked" then
-                self.target_chest = nil
-                return false
-            end
-
-            local d2d = vector.distance({x=pos.x, y=0, z=pos.z}, {x=self.target_chest.x, y=0, z=self.target_chest.z})
-            local dy = math.abs(pos.y - self.target_chest.y)
-
-            if d2d <= 2.2 and dy <= 3.0 then
-                -- At chest: Interaction
-                self:set_velocity(0)
-                self.path_way = nil -- Clear path immediately to avoid finish-lunge
-                self:set_animation("punch")
-                self.deposit_timer = (self.deposit_timer or 0) + dtime
-                
-                if self.deposit_timer < 0.1 then
-                    local node = minetest.get_node(self.target_chest)
-                    if not self.original_chest_name then
-                        self.original_chest_name = node.name
-                        if node.name == "civi_storage:chest" or node.name == "civi_storage:chest_locked" then
-                            minetest.swap_node(self.target_chest, {name = node.name .. "_open", param2 = node.param2})
-                            minetest.sound_play("civi_chest_open", {pos = self.target_chest, gain = 0.3, max_hear_distance = 10})
-                        end
-                    end
-                end
-
-                if self.deposit_timer >= 2.0 then
-                    local meta = minetest.get_meta(self.target_chest)
-                    local inv = meta:get_inventory()
-                    local wood_amount = (self.inv.wood or 0)
-                    if wood_amount > 0 then
-                        local half_wood = math.floor(wood_amount / 2)
-                        local boards = half_wood * 4
-                        local remaining_wood = wood_amount - half_wood
-                        if boards > 0 then inv:add_item("main", ItemStack("civi_core:wood " .. boards)) end
-                        if remaining_wood > 0 then inv:add_item("main", ItemStack("civi_core:tree " .. remaining_wood)) end
-                        self.inv.wood = 0
-                    end
-                    
-                    if self.original_chest_name then
-                        local node = minetest.get_node(self.target_chest)
-                        minetest.swap_node(self.target_chest, {name = self.original_chest_name, param2 = node.param2})
-                        minetest.sound_play("civi_chest_close", {pos = self.target_chest, gain = 0.3, max_hear_distance = 10})
-                        self.original_chest_name = nil
-                    end
-                    self.target_chest = nil
-                    self.stand_target = nil
-                    self.path_way = nil
-                    self.stuck_timer = 0
-                    self.deposit_timer = 0
-                    self.search_timer = 1.0
-                end
-            end
-            return true
-        end
 
         -- ==== 3. SEARCH LOGIC (Tree or Chest) ====
         self.search_timer = (self.search_timer or 0) + dtime

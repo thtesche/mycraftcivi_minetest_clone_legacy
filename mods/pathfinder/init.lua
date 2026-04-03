@@ -108,13 +108,21 @@ end
 
 function pathfinder.find_path(pos, endpos, entity, dtime)
 	-- round positions if not done by former functions
-	pos = { x = math.floor(pos.x + 0.5), y = math.floor(pos.y + 0.5), z = math.floor(pos.z + 0.5) }
-	endpos = { x = math.floor(endpos.x + 0.5), y = math.floor(endpos.y + 0.5), z = math.floor(endpos.z + 0.5) }
+	pos = vector.round(pos)
+	endpos = vector.round(endpos)
 
-	local target_node = minetest.get_node(endpos)
-	if walkable(target_node, endpos, endpos) then
-		endpos.y = endpos.y + 1
+	-- Normalize target: find the actual node the NPC would stand on
+	-- to reach this target. (e.g. if target is a solid tree trunk, 
+	-- the NPC needs to stand on top of it or next to it).
+	local entity_jump_height = (entity and entity.jump_height) or 1.1
+	local entity_fear_height = (entity and entity.fear_height) or 3
+	
+	local endpos_ground = get_neighbor_ground_level(vector.new(endpos), entity_jump_height, entity_fear_height, pos)
+	if endpos_ground then
+		endpos = endpos_ground
 	end
+
+	minetest.chat_send_all("[Pathfinder] START: "..minetest.pos_to_string(pos).." TARGET: "..minetest.pos_to_string(endpos))
 
 	local start_node = minetest.get_node(pos)
 	if is_door(start_node.name) then
@@ -167,7 +175,7 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 		closedSet[current_index] = current_values
 		count = count - 1
 
-		if current_index == target_index then
+		if current_index == target_index or vector.distance(current_values.pos, endpos) < 1.1 then
 			local path = {}
 			repeat
 				if not closedSet[current_index] then
@@ -182,6 +190,22 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 			repeat
 				table.insert(reverse_path, table.remove(path))
 			until #path == 0
+			
+			-- DEBUG: Visualize path with particles
+			for i, p in ipairs(reverse_path) do
+				minetest.add_particle({
+					pos = {x=p.x, y=p.y+0.5, z=p.z},
+					velocity = {x=0, y=0.1, z=0},
+					acceleration = {x=0, y=0.1, z=0},
+					expirationtime = 5.0,
+					size = 2.0,
+					collisiondetection = false,
+					vertical = false,
+					texture = "wool_yellow.png",
+					glow = 14,
+				})
+			end
+			minetest.chat_send_all("[Pathfinder] Path found! Length: " .. #reverse_path .. " Nodes checked: " .. (2001 - count))
 			return reverse_path
 		end
 
@@ -319,13 +343,16 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 		end
 
 		if count > 2000 then
+			minetest.chat_send_all("[Pathfinder] FAIL: Search limit (2000) reached")
 			return
 		end
 
 		if (minetest.get_us_time() - start_time) / 1000 > 50 - dtime * 50 then
+			minetest.chat_send_all("[Pathfinder] FAIL: Timeout")
 			return
 		end
 
 	until count < 1
-	return {pos}
+	minetest.chat_send_all("[Pathfinder] FAIL: No path found (all reachable nodes ["..(2001 - count).."] explored)")
+	return nil
 end

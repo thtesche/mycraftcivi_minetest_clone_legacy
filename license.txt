@@ -4140,3 +4140,16 @@ http://creativecommons.org/licenses/by-sa/3.0/
 
 
 
+
+================================================================================
+FILE: ./mods/civi_snowdrift/LICENSE.txt
+================================================================================
+snowdrift mod by paramat.
+
+Source code: MIT by paramat.
+
+Textures: CC BY-SA 3.0 by paramat.
+
+Sounds: CC BY 3.0 by inchadney.
+http://freesound.org/people/inchadney/sounds/58835/
+

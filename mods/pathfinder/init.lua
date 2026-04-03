@@ -42,30 +42,20 @@ local function get_distance_to_neighbor(start_pos, end_pos)
 	end
 end
 
+local function is_door(node_name)
+	local groups = minetest.registered_nodes[node_name] and minetest.registered_nodes[node_name].groups or {}
+	return groups.door ~= nil or groups.gate ~= nil or string.find(node_name, "doors:door") or string.find(node_name, "doors:hidden")
+end
+
 local function walkable(node, pos, current_pos)
-	if string.find(node.name,"doors:door") then
-		if (node.param2 == 0 or node.param2 == 2) and math.abs(pos.z - current_pos.z) > 0 and pos.x == current_pos.x then
-			return true
-		elseif (node.param2 == 1 or node.param2 == 3) and math.abs(pos.z - current_pos.z) > 0 and pos.x == current_pos.x then
-			return false
-		elseif (node.param2 == 0 or node.param2 == 2) and math.abs(pos.x - current_pos.x) > 0 and pos.z == current_pos.z then
-			return false
-		elseif (node.param2 == 1 or node.param2 == 3) and math.abs(pos.x - current_pos.x) > 0 and pos.z == current_pos.z then
-			return true
-		end
-	elseif string.find(node.name,"doors:hidden") then
-		local node_door = minetest.get_node({x = pos.x, y = pos.y - 1, z = pos.z})
-		if (node_door.param2 == 0 or node_door.param2 == 2) and math.abs(pos.z - current_pos.z) > 0 and pos.x == current_pos.x then
-			return true
-		elseif (node_door.param2 == 1 or node_door.param2 == 3) and math.abs(pos.z - current_pos.z) > 0 and pos.x == current_pos.x then
-			return false
-		elseif (node_door.param2 == 0 or node_door.param2 == 2) and math.abs(pos.x - current_pos.x) > 0 and pos.z == current_pos.z then
-			return false
-		elseif (node_door.param2 == 1 or node_door.param2 == 3) and math.abs(pos.x - current_pos.x) > 0 and pos.z == current_pos.z then
-			return true
-		end
+	if is_door(node.name) then
+		-- Treat doors as passable for pathfinding purposes so NPCs don't get stuck in huts.
+		-- They will prefer open paths due to the added cost penalty in the A* loop.
+		return false
 	end
-	return minetest.registered_nodes[node.name].walkable
+	
+	local def = minetest.registered_nodes[node.name]
+	return def and def.walkable
 end
 
 local function get_neighbor_ground_level(pos, jump_height, fall_height, current_pos)
@@ -105,7 +95,7 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 	end
 
 	local start_node = minetest.get_node(pos)
-	if string.find(start_node.name,"doors:door") then
+	if is_door(start_node.name) then
 		if start_node.param2 == 0 then
 			pos.z = pos.z + 1
 		elseif start_node.param2 == 1 then
@@ -256,7 +246,22 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 			end
 
 			if neighbor.hash ~= current_index and not closedSet[neighbor.hash] and neighbor.clear and not cut_corner then
-				local move_cost_to_neighbor = current_values.gCost + get_distance_to_neighbor(current_values.pos, neighbor.pos)
+				local move_cost = get_distance_to_neighbor(current_values.pos, neighbor.pos)
+				
+				-- Add penalty for closed doors to emphasize open paths
+				local neighbor_node = minetest.get_node(neighbor.pos)
+				if is_door(neighbor_node.name) then
+					local meta = minetest.get_meta(neighbor.pos)
+					local state = meta:get_int("state")
+					-- Check both civi_doors (even/odd state) and open/closed node name pattern
+					local is_open = (state % 2 == 1) or string.find(neighbor_node.name, "_open") or string.find(neighbor_node.name, "_c") or string.find(neighbor_node.name, "_d")
+					
+					if not is_open then
+						move_cost = move_cost + 150 -- Door opening penalty
+					end
+				end
+
+				local move_cost_to_neighbor = current_values.gCost + move_cost
 				local gCost = 0
 				if openSet[neighbor.hash] then
 					gCost = openSet[neighbor.hash].gCost
@@ -277,12 +282,12 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 			end
 		end
 
-		if count > 300 then
+		if count > 2000 then
 			-- minetest.chat_send_all("Path fail")
 			return
 		end
 
-		if (minetest.get_us_time() - start_time) / 1000 > 30 - dtime * 50 then
+		if (minetest.get_us_time() - start_time) / 1000 > 50 - dtime * 50 then
 			-- minetest.chat_send_all("Path timeout")
 			return
 		end

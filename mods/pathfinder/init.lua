@@ -47,13 +47,35 @@ local function is_door(node_name)
 	return groups.door ~= nil or groups.gate ~= nil or string.find(node_name, "doors:door") or string.find(node_name, "doors:hidden")
 end
 
+local function is_door_open(node_name, pos)
+	if not is_door(node_name) then return false end
+	local meta = minetest.get_meta(pos)
+	local state = meta:get_int("state")
+	-- Check both civi_doors (even/odd state) and open/closed node name pattern
+	return (state % 2 == 1) or string.find(node_name, "_open") or string.find(node_name, "_c") or string.find(node_name, "_d")
+end
+
+-- node_name and pos are required for accurate door check
+local function is_physically_solid(node_name, pos)
+	if is_door(node_name) then
+		return not is_door_open(node_name, pos)
+	end
+	local def = minetest.registered_nodes[node_name]
+	-- Specifically check height: if any part of the 2-block height is solid, the node-column is "solid" for corner cutting.
+	local solid = def and def.walkable
+	if not solid then
+		local node_above = minetest.get_node({x=pos.x, y=pos.y+1, z=pos.z})
+		local def_above = minetest.registered_nodes[node_above.name]
+		solid = def_above and def_above.walkable
+	end
+	return solid
+end
+
 local function walkable(node, pos, current_pos)
+	-- For A* search purposes, doors are always "passable"
 	if is_door(node.name) then
-		-- Treat doors as passable for pathfinding purposes so NPCs don't get stuck in huts.
-		-- They will prefer open paths due to the added cost penalty in the A* loop.
 		return false
 	end
-	
 	local def = minetest.registered_nodes[node.name]
 	return def and def.walkable
 end
@@ -160,7 +182,6 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 			repeat
 				table.insert(reverse_path, table.remove(path))
 			until #path == 0
-			-- minetest.chat_send_all("Found path in " .. (minetest.get_us_time() - start_time) / 1000 .. "ms. " .. "Path length: " .. #reverse_path)
 			return reverse_path
 		end
 
@@ -170,7 +191,7 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 		for z = -1, 1 do
 			for x = -1, 1 do
 				local neighbor_pos = {x = current_pos.x + x, y = current_pos.y, z = current_pos.z + z}
-				local neighbor = minetest.get_node(neighbor_pos)
+				local node = minetest.get_node(neighbor_pos)
 				local neighbor_ground_level = get_neighbor_ground_level(neighbor_pos, entity_jump_height, entity_fear_height, current_pos)
 				local neighbor_clearance = false
 
@@ -183,8 +204,8 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 						repeat
 							height = height + 1
 							local pos = { x = neighbor_ground_level.x, y = neighbor_ground_level.y + height, z = neighbor_ground_level.z}
-							local node = minetest.get_node(pos)
-						until walkable(node, pos, current_pos) or height > entity_height
+							local n_node = minetest.get_node(pos)
+						until walkable(n_node, pos, current_pos) or height > entity_height
 						if height >= entity_height then
 							neighbor_clearance = true
 						end
@@ -194,14 +215,15 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 							pos = nil,
 							clear = nil,
 							walkable = nil,
+							solid = nil,
 						}
 					else
 						local height = -1
 						repeat
 							height = height + 1
 							local pos = { x = neighbor_ground_level.x, y = current_pos.y + height, z = neighbor_ground_level.z}
-							local node = minetest.get_node(pos)
-						until walkable(node, pos, current_pos) or height > entity_height
+							local n_node = minetest.get_node(pos)
+						until walkable(n_node, pos, current_pos) or height > entity_height
 						if height >= entity_height then
 							neighbor_clearance = true
 						end
@@ -210,7 +232,8 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 						hash = minetest.hash_node_position(neighbor_ground_level),
 						pos = neighbor_ground_level,
 						clear = neighbor_clearance,
-						walkable = walkable(neighbor, neighbor_pos, current_pos),
+						walkable = walkable(node, neighbor_pos, current_pos),
+						solid = is_physically_solid(node.name, neighbor_pos),
 					}
 				else
 					neighbors[neighbors_index] = {
@@ -218,6 +241,7 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 						pos = nil,
 						clear = nil,
 						walkable = nil,
+						solid = nil,
 					}
 				end
 				neighbors_index = neighbors_index + 1
@@ -228,37 +252,49 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 			-- don't cut corners
 			local cut_corner = false
 			if id == 1 then
-				if not neighbors[id + 1].clear or not neighbors[id + 3].clear or neighbors[id + 1].walkable or neighbors[id + 3].walkable then
+				if neighbors[2].solid or neighbors[4].solid then
 					cut_corner = true
 				end
 			elseif id == 3 then
-				if not neighbors[id - 1].clear or not neighbors[id + 3].clear or neighbors[id - 1].walkable or neighbors[id + 3].walkable then
+				if neighbors[2].solid or neighbors[6].solid then
 					cut_corner = true
 				end
 			elseif id == 7 then
-				if not neighbors[id + 1].clear or not neighbors[id - 3].clear or neighbors[id + 1].walkable or neighbors[id - 3].walkable then
+				if neighbors[8].solid or neighbors[4].solid then
 					cut_corner = true
 				end
 			elseif id == 9 then
-				if not neighbors[id - 1].clear or not neighbors[id - 3].clear or neighbors[id - 1].walkable or neighbors[id - 3].walkable then
+				if neighbors[8].solid or neighbors[6].solid then
 					cut_corner = true
 				end
 			end
 
-			if neighbor.hash ~= current_index and not closedSet[neighbor.hash] and neighbor.clear and not cut_corner then
-				local move_cost = get_distance_to_neighbor(current_values.pos, neighbor.pos)
+			if neighbor.hash and neighbor.hash ~= current_index and not closedSet[neighbor.hash] and neighbor.clear and not cut_corner then
+				local dx = math.abs(current_pos.x - neighbor.pos.x)
+				local dz = math.abs(current_pos.z - neighbor.pos.z)
+				local move_cost = 10
+				if dx > 0 and dz > 0 then
+					move_cost = 20 -- Increase diagonal cost to 2x straight cost
+				end
 				
-				-- Add penalty for closed doors to emphasize open paths
-				local neighbor_node = minetest.get_node(neighbor.pos)
-				if is_door(neighbor_node.name) then
-					local meta = minetest.get_meta(neighbor.pos)
-					local state = meta:get_int("state")
-					-- Check both civi_doors (even/odd state) and open/closed node name pattern
-					local is_open = (state % 2 == 1) or string.find(neighbor_node.name, "_open") or string.find(neighbor_node.name, "_c") or string.find(neighbor_node.name, "_d")
-					
-					if not is_open then
-						move_cost = move_cost + 150 -- Door opening penalty
+				-- Wall proximity penalty: avoid hugging solid blocks
+				local wall_penalty = 0
+				-- Check 4 orthogonal neighbors for solids at both ground and head level
+				local check_offsets = {{x=1,z=0},{x=-1,z=0},{x=0,z=1},{x=0,z=-1}}
+				for _, offset in ipairs(check_offsets) do
+					local npos = {x=neighbor.pos.x+offset.x, y=neighbor.pos.y, z=neighbor.pos.z+offset.z}
+					local nnode = minetest.get_node(npos)
+					-- Exclude doors from wall penalty to encourage approaching exits
+					if is_physically_solid(nnode.name, npos) and not is_door(nnode.name) then
+						wall_penalty = wall_penalty + 15 -- Aggressive penalty to stay in center
 					end
+				end
+				move_cost = move_cost + wall_penalty
+
+				-- Door opening penalty remains
+				local neighbor_node = minetest.get_node(neighbor.pos)
+				if is_door(neighbor_node.name) and not is_door_open(neighbor_node.name, neighbor.pos) then
+					move_cost = move_cost + 150
 				end
 
 				local move_cost_to_neighbor = current_values.gCost + move_cost
@@ -283,16 +319,13 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 		end
 
 		if count > 2000 then
-			-- minetest.chat_send_all("Path fail")
 			return
 		end
 
 		if (minetest.get_us_time() - start_time) / 1000 > 50 - dtime * 50 then
-			-- minetest.chat_send_all("Path timeout")
 			return
 		end
 
 	until count < 1
-	-- minetest.chat_send_all("count < 1")
 	return {pos}
 end

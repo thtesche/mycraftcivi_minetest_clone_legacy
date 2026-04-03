@@ -5,6 +5,7 @@ doors = {}
 
 doors.registered_doors = {}
 doors.registered_trapdoors = {}
+doors.registered_gates = {}
 
 -- Load support for MT game translation.
 local S = minetest.get_translator("civi_doors")
@@ -50,24 +51,24 @@ function doors.get(pos)
 				return state %2 == 1
 			end
 		}
-	elseif doors.registered_trapdoors[node_name] then
-		-- A trapdoor
+	elseif doors.registered_gates[node_name] then
+		-- A fence gate
 		return {
 			pos = pos,
 			open = function(self, player)
 				if self:state() then
 					return false
 				end
-				return doors.trapdoor_toggle(self.pos, nil, player)
+				return doors.fencegate_toggle(self.pos, nil, player)
 			end,
 			close = function(self, player)
 				if not self:state() then
 					return false
 				end
-				return doors.trapdoor_toggle(self.pos, nil, player)
+				return doors.fencegate_toggle(self.pos, nil, player)
 			end,
 			toggle = function(self, player)
-				return doors.trapdoor_toggle(self.pos, nil, player)
+				return doors.fencegate_toggle(self.pos, nil, player)
 			end,
 			state = function(self)
 				return minetest.get_node(self.pos).name:sub(-5) == "_open"
@@ -136,6 +137,9 @@ function doors.door_toggle(pos, node, clicker)
 	local meta = minetest.get_meta(pos)
 	node = node or minetest.get_node(pos)
 	local def = minetest.registered_nodes[node.name]
+	if not def or not def.door then
+		return false
+	end
 	local name = def.door.name
 
 	local state = meta:get_string("state")
@@ -595,6 +599,23 @@ function doors.trapdoor_toggle(pos, node, clicker)
 	end
 end
 
+function doors.fencegate_toggle(pos, node, clicker)
+	node = node or minetest.get_node(pos)
+	if clicker and not default.can_interact_with_node(clicker, pos) then
+		return false
+	end
+
+	local def = minetest.registered_nodes[node.name]
+	if not def or not def._gate then
+		return false
+	end
+
+	minetest.sound_play(def._gate_sound, {pos = pos, gain = 0.15,
+		max_hear_distance = 8}, true)
+	minetest.swap_node(pos, {name = def._gate, param2 = node.param2})
+	return true
+end
+
 function doors.register_trapdoor(name, def)
 	if not name:find(":") then
 		name = "civi_doors:" .. name
@@ -799,10 +820,7 @@ function doors.register_fencegate(name, def)
 		groups = table.copy(def.groups or {}),
 		sounds = def.sounds,
 		on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
-			local node_def = minetest.registered_nodes[node.name]
-			minetest.swap_node(pos, {name = node_def._gate, param2 = node.param2})
-			minetest.sound_play(node_def._gate_sound, {pos = pos, gain = 0.15,
-				max_hear_distance = 8}, true)
+			doors.fencegate_toggle(pos, node, clicker)
 			return itemstack
 		end,
 		selection_box = {
@@ -850,6 +868,9 @@ function doors.register_fencegate(name, def)
 
 	minetest.register_node(":" .. name .. "_closed", fence_closed)
 	minetest.register_node(":" .. name .. "_open", fence_open)
+
+	doors.registered_gates[name .. "_closed"] = true
+	doors.registered_gates[name .. "_open"] = true
 
 	minetest.register_craft({
 		output = name .. "_closed",

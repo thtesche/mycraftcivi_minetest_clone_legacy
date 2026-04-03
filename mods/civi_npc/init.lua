@@ -90,8 +90,8 @@ mobs:register_mob("civi_npc:lumberjack", {
                     -- Check if it's a closed gate (usually looks like *_closed)
                     if node.name:find("_closed") then
                         -- Use the doors mod toggle function (requires doors to be loaded)
-                        if doors and doors.door_toggle then
-                            doors.door_toggle(cp, node, self.object)
+                        if doors and doors.fencegate_toggle then
+                            doors.fencegate_toggle(cp, node, self.object)
                         end
                     end
                 end

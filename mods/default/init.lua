@@ -9,7 +9,7 @@ local nodes = {
     "acacia_wood", "junglewood", "pine_wood", "aspen_wood",
     "glass", "ice", "snowblock", "snow", "cobble",
     "stone_with_coal", "stone_with_iron", "stone_with_copper", "stone_with_gold",
-    "torch"
+    "torch", "gravel", "mossycobble", "desert_cobble", "paper"
 }
 
 for _, name in ipairs(nodes) do

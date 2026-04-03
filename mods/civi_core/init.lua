@@ -230,6 +230,34 @@ minetest.register_node("civi_core:sand", {
     sounds = sounds.node_sound_sand_defaults(),
 })
 
+minetest.register_node("civi_core:gravel", {
+    description = "Gravel",
+    tiles = {"civi_gravel.png"},
+    groups = {crumbly = 2, falling_node = 1},
+    sounds = sounds.node_sound_gravel_defaults(),
+})
+
+minetest.register_node("civi_core:mossycobble", {
+    description = "Mossy Cobblestone",
+    tiles = {"civi_mossycobble.png"},
+    groups = {cracky = 3, stone = 1},
+    sounds = sounds.node_sound_stone_defaults(),
+})
+
+minetest.register_node("civi_core:desert_cobble", {
+    description = "Desert Cobblestone",
+    tiles = {"civi_desert_cobble.png"},
+    groups = {cracky = 3, stone = 1},
+    sounds = sounds.node_sound_stone_defaults(),
+})
+
+minetest.register_craftitem("civi_core:paper", {
+    description = "Paper",
+    inventory_image = "civi_paper.png",
+    groups = {flammable = 3},
+})
+
+
 minetest.register_node("civi_core:stone_with_coal", {
     description = "Coal Ore",
     tiles = {"civi_stone.png^civi_mineral_coal.png"},
@@ -1403,6 +1431,13 @@ minetest.register_craft({
         {"", "", "group:leaves"},
         {"", "group:leaves", ""},
         {"group:leaves", "", ""},
+    }
+})
+
+minetest.register_craft({
+    output = "civi_core:paper 3",
+    recipe = {
+        {"group:leaves", "group:leaves", "group:leaves"},
     }
 })
 

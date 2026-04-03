@@ -95,12 +95,15 @@ end
 
 -- General functions
 function default.can_interact_with_node(player, pos)
-	if player and player:get_player_name() then
-		if minetest.check_player_privs(player, "protection_bypass") then
+	if player and player.is_player and player:is_player() then
+		local name = player:get_player_name()
+		if name and minetest.check_player_privs(name, "protection_bypass") then
 			return true
 		end
+		return not minetest.is_protected(pos, name)
 	end
-	return not minetest.is_protected(pos, player and player:get_player_name() or "")
+	-- For non-player entities (NPCs), allow interaction
+	return true
 end
 
 print("[Default Shim] Loaded.")

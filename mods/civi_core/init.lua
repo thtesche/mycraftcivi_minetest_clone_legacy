@@ -230,6 +230,161 @@ minetest.register_node("civi_core:sand", {
     sounds = sounds.node_sound_sand_defaults(),
 })
 
+minetest.register_node("civi_core:dirt_with_dry_grass", {
+    description = "Dirt with Dry Grass",
+    tiles = {"civi_dry_grass.png", "civi_dirt.png", {name = "civi_dirt.png^civi_dry_grass_side.png", tileable_vertical = false}},
+    groups = {crumbly = 3, soil = 1, grass = 1},
+    sounds = sounds.node_sound_dirt_defaults(),
+})
+
+minetest.register_node("civi_core:dirt_with_snow", {
+    description = "Dirt with Snow",
+    tiles = {"civi_snow.png", "civi_dirt.png", {name = "civi_dirt.png^civi_snow_side.png", tileable_vertical = false}},
+    groups = {crumbly = 3, soil = 1, snowy = 1},
+    sounds = sounds.node_sound_dirt_defaults(),
+})
+
+minetest.register_node("civi_core:dirt_with_coniferous_litter", {
+    description = "Dirt with Coniferous Litter",
+    tiles = {"civi_coniferous_litter.png", "civi_dirt.png", {name = "civi_dirt.png^civi_coniferous_litter_side.png", tileable_vertical = false}},
+    groups = {crumbly = 3, soil = 1},
+    sounds = sounds.node_sound_dirt_defaults(),
+})
+
+minetest.register_node("civi_core:dirt_with_rainforest_litter", {
+    description = "Dirt with Rainforest Litter",
+    tiles = {"civi_rainforest_litter.png", "civi_dirt.png", {name = "civi_dirt.png^civi_rainforest_litter_side.png", tileable_vertical = false}},
+    groups = {crumbly = 3, soil = 1},
+    sounds = sounds.node_sound_dirt_defaults(),
+})
+
+minetest.register_node("civi_core:cactus", {
+    description = "Cactus",
+    tiles = {"civi_cactus_top.png", "civi_cactus_top.png", "civi_cactus_side.png"},
+    groups = {snappy = 1, choppy = 3, flammable = 2},
+    sounds = sounds.node_sound_wood_defaults(),
+    on_damage = function(pos, player)
+        if player:is_player() then
+            player:set_hp(player:get_hp() - 1)
+        end
+    end,
+})
+
+minetest.register_node("civi_core:dry_shrub", {
+    description = "Dry Shrub",
+    drawtype = "plantlike",
+    tiles = {"civi_dry_shrub.png"},
+    inventory_image = "civi_dry_shrub.png",
+    paramtype = "light",
+    walkable = false,
+    buildable_to = true,
+    groups = {snappy = 3, flammable = 3, attached_node = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
+})
+
+minetest.register_node("civi_core:junglegrass", {
+    description = "Jungle Grass",
+    drawtype = "plantlike",
+    tiles = {"civi_junglegrass.png"},
+    inventory_image = "civi_junglegrass.png",
+    paramtype = "light",
+    walkable = false,
+    buildable_to = true,
+    groups = {snappy = 3, flammable = 3, attached_node = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
+})
+
+minetest.register_node("civi_core:papyrus", {
+    description = "Papyrus",
+    drawtype = "plantlike",
+    tiles = {"civi_papyrus.png"},
+    inventory_image = "civi_papyrus.png",
+    paramtype = "light",
+    sunlight_propagates = true,
+    walkable = false,
+    selection_box = {
+        type = "fixed",
+        fixed = {-3 / 16, -0.5, -3 / 16, 3 / 16, 0.5, 3 / 16}
+    },
+    groups = {snappy = 3, flammable = 1, attached_node = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
+})
+
+minetest.register_node("civi_core:bush_leaves", {
+    description = "Bush Leaves",
+    drawtype = "allfaces_optional",
+    tiles = {"civi_bush_leaves.png"},
+    paramtype = "light",
+    groups = {snappy = 3, flammable = 2, leaves = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
+})
+
+minetest.register_node("civi_core:bush_stem", {
+    description = "Bush Stem",
+    drawtype = "plantlike",
+    tiles = {"civi_bush_stem.png"},
+    inventory_image = "civi_bush_stem.png",
+    paramtype = "light",
+    sunlight_propagates = true,
+    walkable = false,
+    groups = {snappy = 2, flammable = 2, attached_node = 1},
+    sounds = sounds.node_sound_wood_defaults(),
+    selection_box = {
+        type = "fixed",
+        fixed = {-1 / 16, -0.5, -1 / 16, 1 / 16, 0.5, 1 / 16},
+    },
+})
+
+minetest.register_node("civi_core:acacia_bush_leaves", {
+    description = "Acacia Bush Leaves",
+    drawtype = "allfaces_optional",
+    tiles = {"civi_acacia_bush_leaves.png"},
+    paramtype = "light",
+    groups = {snappy = 3, flammable = 2, leaves = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
+})
+
+minetest.register_node("civi_core:acacia_bush_stem", {
+    description = "Acacia Bush Stem",
+    drawtype = "plantlike",
+    tiles = {"civi_acacia_bush_stem.png"},
+    inventory_image = "civi_acacia_bush_stem.png",
+    paramtype = "light",
+    sunlight_propagates = true,
+    walkable = false,
+    groups = {snappy = 2, flammable = 2, attached_node = 1},
+    sounds = sounds.node_sound_wood_defaults(),
+    selection_box = {
+        type = "fixed",
+        fixed = {-1 / 16, -0.5, -1 / 16, 1 / 16, 0.5, 1 / 16},
+    },
+})
+
+minetest.register_node("civi_core:pine_bush_needles", {
+    description = "Pine Bush Needles",
+    drawtype = "allfaces_optional",
+    tiles = {"civi_pine_needles.png"}, -- reuse pine needles
+    paramtype = "light",
+    groups = {snappy = 3, flammable = 2, leaves = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
+})
+
+minetest.register_node("civi_core:pine_bush_stem", {
+    description = "Pine Bush Stem",
+    drawtype = "plantlike",
+    tiles = {"civi_pine_bush_stem.png"},
+    inventory_image = "civi_pine_bush_stem.png",
+    paramtype = "light",
+    sunlight_propagates = true,
+    walkable = false,
+    groups = {snappy = 2, flammable = 2, attached_node = 1},
+    sounds = sounds.node_sound_wood_defaults(),
+    selection_box = {
+        type = "fixed",
+        fixed = {-1 / 16, -0.5, -1 / 16, 1 / 16, 0.5, 1 / 16},
+    },
+})
+
 minetest.register_node("civi_core:gravel", {
     description = "Gravel",
     tiles = {"civi_gravel.png"},
@@ -573,6 +728,8 @@ minetest.register_node("civi_core:torch_ceiling", {
 minetest.register_node("civi_core:tree", {
     description = "Tree Trunk (Wood)",
     tiles = {"civi_tree_trunk_top.png", "civi_tree_trunk_top.png", "civi_tree_trunk.png"},
+    paramtype2 = "facedir",
+    on_place = minetest.rotate_node,
     groups = {tree = 1, choppy = 2, oddy_breakable_by_hand = 1, flammable = 2},
     sounds = sounds.node_sound_wood_defaults(),
 })
@@ -581,6 +738,8 @@ minetest.register_node("civi_core:tree", {
 minetest.register_node("civi_core:acacia_tree", {
     description = "Acacia Tree Trunk",
     tiles = {"civi_acacia_tree_top.png", "civi_acacia_tree_top.png", "civi_acacia_tree.png"},
+    paramtype2 = "facedir",
+    on_place = minetest.rotate_node,
     groups = {tree = 1, choppy = 2, oddy_breakable_by_hand = 1, flammable = 2},
     sounds = sounds.node_sound_wood_defaults(),
 })
@@ -603,6 +762,8 @@ minetest.register_node("civi_core:acacia_leaves", {
 minetest.register_node("civi_core:aspen_tree", {
     description = "Aspen Tree Trunk",
     tiles = {"civi_aspen_tree_top.png", "civi_aspen_tree_top.png", "civi_aspen_tree.png"},
+    paramtype2 = "facedir",
+    on_place = minetest.rotate_node,
     groups = {tree = 1, choppy = 2, oddy_breakable_by_hand = 1, flammable = 2},
     sounds = sounds.node_sound_wood_defaults(),
 })
@@ -625,6 +786,8 @@ minetest.register_node("civi_core:aspen_leaves", {
 minetest.register_node("civi_core:jungletree", {
     description = "Jungle Tree Trunk",
     tiles = {"civi_jungletree_top.png", "civi_jungletree_top.png", "civi_jungletree.png"},
+    paramtype2 = "facedir",
+    on_place = minetest.rotate_node,
     groups = {tree = 1, choppy = 2, oddy_breakable_by_hand = 1, flammable = 2},
     sounds = sounds.node_sound_wood_defaults(),
 })
@@ -647,6 +810,8 @@ minetest.register_node("civi_core:jungleleaves", {
 minetest.register_node("civi_core:pine_tree", {
     description = "Pine Tree Trunk",
     tiles = {"civi_pine_tree_top.png", "civi_pine_tree_top.png", "civi_pine_tree.png"},
+    paramtype2 = "facedir",
+    on_place = minetest.rotate_node,
     groups = {tree = 1, choppy = 2, oddy_breakable_by_hand = 1, flammable = 2},
     sounds = sounds.node_sound_wood_defaults(),
 })
@@ -693,7 +858,7 @@ minetest.register_node("civi_core:leaves", {
 })
 
 minetest.register_node("civi_core:sapling", {
-    description = "Sapling",
+    description = "Apple Tree Sapling",
     drawtype = "plantlike",
     tiles = {"civi_sapling.png"},
     inventory_image = "civi_sapling.png",
@@ -714,9 +879,13 @@ minetest.register_node("civi_core:sapling", {
         local pos_under = pointed_thing.under
         local node_under = minetest.get_node(pos_under).name
         
-        -- Erlaube Platzierung nur auf Erde, Gras oder Sand
+        -- Erlaube Platzierung nur auf Erde, Gras, Sand oder Streu
         if node_under == "civi_core:dirt" or 
            node_under == "civi_core:dirt_with_grass" or 
+           node_under == "civi_core:dirt_with_dry_grass" or
+           node_under == "civi_core:dirt_with_snow" or
+           node_under == "civi_core:dirt_with_coniferous_litter" or
+           node_under == "civi_core:dirt_with_rainforest_litter" or
            node_under == "civi_core:sand" then
             return minetest.item_place(itemstack, placer, pointed_thing)
         end
@@ -729,6 +898,146 @@ minetest.register_node("civi_core:sapling", {
     on_timer = function(pos)
         minetest.place_schematic({x = pos.x - 3, y = pos.y - 1, z = pos.z - 3},
             minetest.get_modpath("civi_core") .. "/schematics/apple_tree.mts", "random", nil, false)
+        return false
+    end,
+})
+
+minetest.register_node("civi_core:acacia_sapling", {
+    description = "Acacia Tree Sapling",
+    drawtype = "plantlike",
+    tiles = {"civi_acacia_sapling.png"},
+    inventory_image = "civi_acacia_sapling.png",
+    wield_image = "civi_acacia_sapling.png",
+    paramtype = "light",
+    sunlight_propagates = true,
+    walkable = false,
+    selection_box = {
+        type = "fixed",
+        fixed = {-3 / 16, -0.5, -3 / 16, 3 / 16, 0.5, 3 / 16}
+    },
+    groups = {snappy = 2, dig_immediate = 3, flammable = 2, sapling = 1, attached_node = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
+    on_place = function(itemstack, placer, pointed_thing)
+        if pointed_thing.type ~= "node" then return itemstack end
+        local node_under = minetest.get_node(pointed_thing.under).name
+        if node_under == "civi_core:dirt" or 
+           node_under == "civi_core:dirt_with_grass" or 
+           node_under == "civi_core:dirt_with_dry_grass" or
+           node_under == "civi_core:sand" then
+            return minetest.item_place(itemstack, placer, pointed_thing)
+        end
+        return itemstack
+    end,
+    on_construct = function(pos)
+        minetest.get_node_timer(pos):start(math.random(300, 1500))
+    end,
+    on_timer = function(pos)
+        minetest.place_schematic({x = pos.x - 3, y = pos.y - 1, z = pos.z - 3},
+            minetest.get_modpath("civi_core") .. "/schematics/acacia_tree.mts", "random", nil, false)
+        return false
+    end,
+})
+
+minetest.register_node("civi_core:aspen_sapling", {
+    description = "Aspen Tree Sapling",
+    drawtype = "plantlike",
+    tiles = {"civi_aspen_sapling.png"},
+    inventory_image = "civi_aspen_sapling.png",
+    wield_image = "civi_aspen_sapling.png",
+    paramtype = "light",
+    sunlight_propagates = true,
+    walkable = false,
+    selection_box = {
+        type = "fixed",
+        fixed = {-3 / 16, -0.5, -3 / 16, 3 / 16, 0.5, 3 / 16}
+    },
+    groups = {snappy = 2, dig_immediate = 3, flammable = 2, sapling = 1, attached_node = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
+    on_place = function(itemstack, placer, pointed_thing)
+        if pointed_thing.type ~= "node" then return itemstack end
+        local node_under = minetest.get_node(pointed_thing.under).name
+        if node_under == "civi_core:dirt" or node_under == "civi_core:dirt_with_grass" then
+            return minetest.item_place(itemstack, placer, pointed_thing)
+        end
+        return itemstack
+    end,
+    on_construct = function(pos)
+        minetest.get_node_timer(pos):start(math.random(300, 1500))
+    end,
+    on_timer = function(pos)
+        minetest.place_schematic({x = pos.x - 3, y = pos.y - 1, z = pos.z - 3},
+            minetest.get_modpath("civi_core") .. "/schematics/aspen_tree.mts", "random", nil, false)
+        return false
+    end,
+})
+
+minetest.register_node("civi_core:jungle_sapling", {
+    description = "Jungle Tree Sapling",
+    drawtype = "plantlike",
+    tiles = {"civi_jungle_sapling.png"},
+    inventory_image = "civi_jungle_sapling.png",
+    wield_image = "civi_jungle_sapling.png",
+    paramtype = "light",
+    sunlight_propagates = true,
+    walkable = false,
+    selection_box = {
+        type = "fixed",
+        fixed = {-3 / 16, -0.5, -3 / 16, 3 / 16, 0.5, 3 / 16}
+    },
+    groups = {snappy = 2, dig_immediate = 3, flammable = 2, sapling = 1, attached_node = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
+    on_place = function(itemstack, placer, pointed_thing)
+        if pointed_thing.type ~= "node" then return itemstack end
+        local node_under = minetest.get_node(pointed_thing.under).name
+        if node_under == "civi_core:dirt" or 
+           node_under == "civi_core:dirt_with_grass" or 
+           node_under == "civi_core:dirt_with_rainforest_litter" then
+            return minetest.item_place(itemstack, placer, pointed_thing)
+        end
+        return itemstack
+    end,
+    on_construct = function(pos)
+        minetest.get_node_timer(pos):start(math.random(300, 1500))
+    end,
+    on_timer = function(pos)
+        minetest.place_schematic({x = pos.x - 3, y = pos.y - 1, z = pos.z - 3},
+            minetest.get_modpath("civi_core") .. "/schematics/jungle_tree.mts", "random", nil, false)
+        return false
+    end,
+})
+
+minetest.register_node("civi_core:pine_sapling", {
+    description = "Pine Tree Sapling",
+    drawtype = "plantlike",
+    tiles = {"civi_pine_sapling.png"},
+    inventory_image = "civi_pine_sapling.png",
+    wield_image = "civi_pine_sapling.png",
+    paramtype = "light",
+    sunlight_propagates = true,
+    walkable = false,
+    selection_box = {
+        type = "fixed",
+        fixed = {-3 / 16, -0.5, -3 / 16, 3 / 16, 0.5, 3 / 16}
+    },
+    groups = {snappy = 2, dig_immediate = 3, flammable = 2, sapling = 1, attached_node = 1},
+    sounds = sounds.node_sound_leaves_defaults(),
+    on_place = function(itemstack, placer, pointed_thing)
+        if pointed_thing.type ~= "node" then return itemstack end
+        local node_under = minetest.get_node(pointed_thing.under).name
+        if node_under == "civi_core:dirt" or 
+           node_under == "civi_core:dirt_with_grass" or 
+           node_under == "civi_core:dirt_with_snow" or
+           node_under == "civi_core:dirt_with_coniferous_litter" then
+            return minetest.item_place(itemstack, placer, pointed_thing)
+        end
+        return itemstack
+    end,
+    on_construct = function(pos)
+        minetest.get_node_timer(pos):start(math.random(300, 1500))
+    end,
+    on_timer = function(pos)
+        minetest.place_schematic({x = pos.x - 3, y = pos.y - 1, z = pos.z - 3},
+            minetest.get_modpath("civi_core") .. "/schematics/pine_tree.mts", "random", nil, false)
         return false
     end,
 })
@@ -1132,23 +1441,20 @@ end)
 -- =========================================================
 
 -- Ein Ozean-Biome für alles unter dem Meeresspiegel
+-- Ozean
 minetest.register_biome({
     name = "ocean",
     node_top = "civi_core:dirt",
     depth_top = 1,
     node_filler = "civi_core:dirt",
     depth_filler = 3,
-    node_stone = "civi_core:stone",
-    node_water_top = "civi_core:water_source",
-    depth_water_top = 10,
     y_min = -31000,
     y_max = -4,
     heat_point = 50,
     humidity_point = 50,
 })
 
--- Ein Strand-Biome für den Übergang (Sand am Wasser)
--- Deckt den Bereich von -3 bis 2 ab (3 unter Wasser, 2 über Wasser)
+-- Strand
 minetest.register_biome({
     name = "beach",
     node_top = "civi_core:sand",
@@ -1161,20 +1467,111 @@ minetest.register_biome({
     humidity_point = 50,
 })
 
--- Grasland für alles über dem Strand
+-- Wüste
+minetest.register_biome({
+    name = "desert",
+    node_top = "civi_core:sand",
+    depth_top = 1,
+    node_filler = "civi_core:sandstone",
+    depth_filler = 3,
+    node_stone = "civi_core:desert_stone",
+    y_min = 3,
+    y_max = 31000,
+    heat_point = 92,
+    humidity_point = 16,
+})
+
+-- Savanne
+minetest.register_biome({
+    name = "savanna",
+    node_top = "civi_core:dirt_with_dry_grass",
+    depth_top = 1,
+    node_filler = "civi_core:dirt",
+    depth_filler = 3,
+    y_min = 3,
+    y_max = 31000,
+    heat_point = 92,
+    humidity_point = 38,
+})
+
+-- Grasland (Standard)
 minetest.register_biome({
     name = "grassland",
     node_top = "civi_core:dirt_with_grass",
     depth_top = 1,
     node_filler = "civi_core:dirt",
     depth_filler = 3,
-    node_stone = "civi_core:stone",
-    node_water_top = "civi_core:water_source",
-    depth_water_top = 10,
     y_min = 3,
     y_max = 31000,
     heat_point = 50,
-    humidity_point = 50,
+    humidity_point = 35,
+})
+
+-- Laubwald (Deciduous)
+minetest.register_biome({
+    name = "deciduous_forest",
+    node_top = "civi_core:dirt_with_grass",
+    depth_top = 1,
+    node_filler = "civi_core:dirt",
+    depth_filler = 3,
+    y_min = 3,
+    y_max = 31000,
+    heat_point = 60,
+    humidity_point = 68,
+})
+
+-- Nadelwald (Coniferous)
+minetest.register_biome({
+    name = "coniferous_forest",
+    node_top = "civi_core:dirt_with_coniferous_litter",
+    depth_top = 1,
+    node_filler = "civi_core:dirt",
+    depth_filler = 3,
+    y_min = 3,
+    y_max = 31000,
+    heat_point = 45,
+    humidity_point = 70,
+})
+
+-- Regenwald (Rainforest)
+minetest.register_biome({
+    name = "rainforest",
+    node_top = "civi_core:dirt_with_rainforest_litter",
+    depth_top = 1,
+    node_filler = "civi_core:dirt",
+    depth_filler = 3,
+    y_min = 3,
+    y_max = 31000,
+    heat_point = 80,
+    humidity_point = 85,
+})
+
+-- Tundra
+minetest.register_biome({
+    name = "tundra",
+    node_top = "civi_core:dirt_with_snow",
+    depth_top = 1,
+    node_filler = "civi_core:dirt",
+    depth_filler = 1,
+    y_min = 2,
+    y_max = 31000,
+    heat_point = 0,
+    humidity_point = 40,
+})
+
+-- Eiswüste
+minetest.register_biome({
+    name = "icesheet",
+    node_top = "civi_core:snowblock",
+    depth_top = 1,
+    node_filler = "civi_core:snowblock",
+    depth_filler = 3,
+    node_water_top = "civi_core:ice",
+    depth_water_top = 10,
+    y_min = -8,
+    y_max = 31000,
+    heat_point = 0,
+    humidity_point = 73,
 })
 
 -- =========================================================
@@ -1272,39 +1669,126 @@ minetest.register_craftitem("civi_core:stick", {
 minetest.register_alias("default:tree", "civi_core:tree")
 minetest.register_alias("default:leaves", "civi_core:leaves")
 minetest.register_alias("default:apple", "civi_core:apple")
+minetest.register_alias("default:jungletree", "civi_core:jungletree")
+minetest.register_alias("default:jungleleaves", "civi_core:jungleleaves")
+minetest.register_alias("default:pine_tree", "civi_core:pine_tree")
+minetest.register_alias("default:pine_needles", "civi_core:pine_needles")
+minetest.register_alias("default:acacia_tree", "civi_core:acacia_tree")
+minetest.register_alias("default:acacia_leaves", "civi_core:acacia_leaves")
+minetest.register_alias("default:aspen_tree", "civi_core:aspen_tree")
+minetest.register_alias("default:aspen_leaves", "civi_core:aspen_leaves")
+minetest.register_alias("default:cactus", "civi_core:cactus")
+minetest.register_alias("default:sapling", "civi_core:sapling")
+minetest.register_alias("default:acacia_sapling", "civi_core:acacia_sapling")
+minetest.register_alias("default:aspen_sapling", "civi_core:aspen_sapling")
+minetest.register_alias("default:junglesapling", "civi_core:jungle_sapling")
+minetest.register_alias("default:pine_sapling", "civi_core:pine_sapling")
+minetest.register_alias("default:papyrus", "civi_core:papyrus")
+minetest.register_alias("default:bush_leaves", "civi_core:bush_leaves")
+minetest.register_alias("default:acacia_bush_leaves", "civi_core:acacia_bush_leaves")
+minetest.register_alias("default:pine_bush_needles", "civi_core:pine_bush_needles")
+minetest.register_alias("default:bush_stem", "civi_core:bush_stem")
+minetest.register_alias("default:acacia_bush_stem", "civi_core:acacia_bush_stem")
+minetest.register_alias("default:pine_bush_stem", "civi_core:pine_bush_stem")
+minetest.register_alias("default:bush_sapling", "civi_core:sapling")
+minetest.register_alias("default:acacia_bush_sapling", "civi_core:acacia_sapling")
+minetest.register_alias("default:pine_bush_sapling", "civi_core:pine_sapling")
 
+-- Flowers/Mushrooms Aliases
+minetest.register_alias("flowers:mushroom_red", "civi_core:mushroom_red")
+minetest.register_alias("flowers:mushroom_brown", "civi_core:mushroom_brown")
+
+-- Apple Tree (Grassland)
 minetest.register_decoration({
     name = "civi_core:apple_tree",
     deco_type = "schematic",
     place_on = {"civi_core:dirt_with_grass"},
     sidelen = 16,
-    noise_params = {
-        offset = 0.01,
-        scale = 0.01,
-        spread = {x = 100, y = 100, z = 100},
-        seed = 2,
-        octaves = 3,
-        persist = 0.66
-    },
+    noise_params = {offset = 0.01, scale = 0.01, spread = {x = 100, y = 100, z = 100}, seed = 2, octaves = 3, persist = 0.66},
+    biomes = {"grassland"},
     y_max = 31000,
     y_min = 1,
     schematic = minetest.get_modpath("civi_core") .. "/schematics/apple_tree.mts",
     flags = "place_center_x, place_center_z",
 })
 
+-- Acacia Tree (Savanna)
+minetest.register_decoration({
+    name = "civi_core:acacia_tree",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_dry_grass"},
+    sidelen = 16,
+    noise_params = {offset = 0.01, scale = 0.01, spread = {x = 100, y = 100, z = 100}, seed = 17, octaves = 3, persist = 0.66},
+    biomes = {"savanna"},
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/acacia_tree.mts",
+    flags = "place_center_x, place_center_z",
+})
+
+-- Jungle Tree (Rainforest)
+minetest.register_decoration({
+    name = "civi_core:jungle_tree",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_rainforest_litter"},
+    sidelen = 16,
+    noise_params = {offset = 0.01, scale = 0.02, spread = {x = 100, y = 100, z = 100}, seed = 401, octaves = 3, persist = 0.66},
+    biomes = {"rainforest"},
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/jungle_tree.mts",
+    flags = "place_center_x, place_center_z",
+})
+
+-- Pine Tree (Coniferous)
+minetest.register_decoration({
+    name = "civi_core:pine_tree",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_coniferous_litter", "civi_core:dirt_with_snow"},
+    sidelen = 16,
+    noise_params = {offset = 0.01, scale = 0.02, spread = {x = 100, y = 100, z = 100}, seed = 88, octaves = 3, persist = 0.66},
+    biomes = {"coniferous_forest"},
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/pine_tree.mts",
+    flags = "place_center_x, place_center_z",
+})
+
+-- Aspen Tree (Deciduous)
+minetest.register_decoration({
+    name = "civi_core:aspen_tree",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_grass"},
+    sidelen = 16,
+    noise_params = {offset = 0.01, scale = 0.01, spread = {x = 100, y = 100, z = 100}, seed = 129, octaves = 3, persist = 0.66},
+    biomes = {"deciduous_forest"},
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/aspen_tree.mts",
+    flags = "place_center_x, place_center_z",
+})
+
+-- Cactus (Desert)
+minetest.register_decoration({
+    name = "civi_core:cactus",
+    deco_type = "schematic",
+    place_on = {"civi_core:sand"},
+    sidelen = 16,
+    noise_params = {offset = -0.005, scale = 0.01, spread = {x = 100, y = 100, z = 100}, seed = 901, octaves = 3, persist = 0.66},
+    biomes = {"desert"},
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/large_cactus.mts",
+    flags = "place_center_x, place_center_z",
+})
+
+-- Mushrooms
 minetest.register_decoration({
     name = "civi_core:mushroom_brown",
     deco_type = "simple",
-    place_on = {"civi_core:dirt_with_grass"},
+    place_on = {"civi_core:dirt_with_grass", "civi_core:dirt_with_coniferous_litter"},
     sidelen = 16,
-    noise_params = {
-        offset = 0,
-        scale = 0.005,
-        spread = {x = 100, y = 100, z = 100},
-        seed = 13,
-        octaves = 3,
-        persist = 0.66
-    },
+    noise_params = {offset = 0, scale = 0.005, spread = {x = 100, y = 100, z = 100}, seed = 13, octaves = 3, persist = 0.66},
     y_max = 31000,
     y_min = 1,
     decoration = "civi_core:mushroom_brown",
@@ -1313,19 +1797,161 @@ minetest.register_decoration({
 minetest.register_decoration({
     name = "civi_core:mushroom_red",
     deco_type = "simple",
-    place_on = {"civi_core:dirt_with_grass"},
+    place_on = {"civi_core:dirt_with_grass", "civi_core:dirt_with_rainforest_litter"},
     sidelen = 16,
-    noise_params = {
-        offset = 0,
-        scale = 0.002,
-        spread = {x = 100, y = 100, z = 100},
-        seed = 42,
-        octaves = 3,
-        persist = 0.66
-    },
+    noise_params = {offset = 0, scale = 0.002, spread = {x = 100, y = 100, z = 100}, seed = 42, octaves = 3, persist = 0.66},
     y_max = 31000,
     y_min = 1,
     decoration = "civi_core:mushroom_red",
+})
+
+-- Other plants
+minetest.register_decoration({
+    name = "civi_core:dry_shrub",
+    deco_type = "simple",
+    place_on = {"civi_core:sand", "civi_core:desert_stone", "civi_core:dirt_with_dry_grass"},
+    sidelen = 16,
+    noise_params = {offset = 0, scale = 0.02, spread = {x = 100, y = 100, z = 100}, seed = 711, octaves = 3, persist = 0.66},
+    biomes = {"desert", "savanna", "cold_desert"},
+    y_max = 31000,
+    y_min = 1,
+    decoration = "civi_core:dry_shrub",
+})
+
+minetest.register_decoration({
+    name = "civi_core:junglegrass",
+    deco_type = "simple",
+    place_on = {"civi_core:dirt_with_rainforest_litter", "civi_core:dirt"},
+    sidelen = 16,
+    noise_params = {offset = 0, scale = 0.1, spread = {x = 100, y = 100, z = 100}, seed = 239, octaves = 3, persist = 0.66},
+    biomes = {"rainforest"},
+    y_max = 31000,
+    y_min = 1,
+    decoration = "civi_core:junglegrass",
+})
+
+-- LOGS (Fallen trees)
+minetest.register_decoration({
+    name = "civi_core:apple_log",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_grass"},
+    sidelen = 80,
+    fill_ratio = 0.005,
+    biomes = {"grassland"},
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/apple_log.mts",
+    flags = "place_center_x, place_center_z",
+    rotation = "random",
+})
+
+minetest.register_decoration({
+    name = "civi_core:acacia_log",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_dry_grass"},
+    sidelen = 80,
+    fill_ratio = 0.002,
+    biomes = {"savanna"},
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/acacia_log.mts",
+    flags = "place_center_x, place_center_z",
+    rotation = "random",
+})
+
+minetest.register_decoration({
+    name = "civi_core:aspen_log",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_grass"},
+    sidelen = 80,
+    fill_ratio = 0.002,
+    biomes = {"deciduous_forest"},
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/aspen_log.mts",
+    flags = "place_center_x, place_center_z",
+    rotation = "random",
+})
+
+minetest.register_decoration({
+    name = "civi_core:jungle_log",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_rainforest_litter"},
+    sidelen = 80,
+    fill_ratio = 0.005,
+    biomes = {"rainforest"},
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/jungle_log.mts",
+    flags = "place_center_x, place_center_z",
+    rotation = "random",
+})
+
+minetest.register_decoration({
+    name = "civi_core:pine_log",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_coniferous_litter", "civi_core:dirt_with_snow"},
+    sidelen = 80,
+    fill_ratio = 0.002,
+    biomes = {"coniferous_forest", "tundra"},
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/pine_log.mts",
+    flags = "place_center_x, place_center_z",
+    rotation = "random",
+})
+
+-- BUSHES
+minetest.register_decoration({
+    name = "civi_core:bush",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_grass"},
+    sidelen = 16,
+    noise_params = {offset = -0.004, scale = 0.01, spread = {x = 100, y = 100, z = 100}, seed = 137, octaves = 3, persist = 0.66},
+    biomes = {"grassland", "deciduous_forest"},
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/bush.mts",
+    flags = "place_center_x, place_center_z",
+})
+
+minetest.register_decoration({
+    name = "civi_core:acacia_bush",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_dry_grass"},
+    sidelen = 16,
+    noise_params = {offset = -0.004, scale = 0.01, spread = {x = 100, y = 100, z = 100}, seed = 901, octaves = 3, persist = 0.66},
+    biomes = {"savanna"},
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/acacia_bush.mts",
+    flags = "place_center_x, place_center_z",
+})
+
+minetest.register_decoration({
+    name = "civi_core:pine_bush",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_coniferous_litter", "civi_core:dirt_with_snow"},
+    sidelen = 16,
+    noise_params = {offset = -0.004, scale = 0.01, spread = {x = 100, y = 100, z = 100}, seed = 125, octaves = 3, persist = 0.66},
+    biomes = {"coniferous_forest", "tundra"},
+    y_max = 31000,
+    y_min = 1,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/pine_bush.mts",
+    flags = "place_center_x, place_center_z",
+})
+
+-- PAPYRUS
+minetest.register_decoration({
+    name = "civi_core:papyrus",
+    deco_type = "schematic",
+    place_on = {"civi_core:dirt_with_grass", "civi_core:dirt"},
+    sidelen = 16,
+    noise_params = {offset = -0.3, scale = 0.7, spread = {x = 100, y = 100, z = 100}, seed = 354, octaves = 3, persist = 0.7},
+    biomes = {"grassland", "rainforest"},
+    y_max = 1,
+    y_min = 0,
+    schematic = minetest.get_modpath("civi_core") .. "/schematics/papyrus_on_dirt.mts",
 })
 
 -- Die alte Strand-Dekoration wird durch das Biome ersetzt

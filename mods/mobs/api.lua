@@ -1809,7 +1809,7 @@ function mob_class:smart_mobs(s, p, dist, dtime)
 			self.path.way = minetest.find_path(s, p1, pathfinding_searchdistance,
 					jumpheight, dropheight, pathfinding_algorithm)
 		end
---[[
+
 		-- show path using particles
 		if self.path.way and #self.path.way > 0 then
 
@@ -1829,7 +1829,6 @@ function mob_class:smart_mobs(s, p, dist, dtime)
 				})
 			end
 		end
-]]
 
 		self.state = ""
 

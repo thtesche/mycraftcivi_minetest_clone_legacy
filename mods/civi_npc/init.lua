@@ -578,7 +578,6 @@ mobs:register_mob("civi_npc:lumberjack", {
 })
 
 -- Spawning rule
--- [[ Spawning rule disabled for debugging
 mobs:spawn({
     name = "civi_npc:lumberjack",
     nodes = {"civi_core:dirt_with_grass"},
@@ -587,11 +586,10 @@ mobs:spawn({
     active_object_count = 1,
     min_height = 0,
 })
--- ]]
 
 
 -- Spawn egg for the inventory
 mobs:register_egg("civi_npc:lumberjack", "Lumberjack (myCraftCivi)", "civi_wood.png", 1)
 
--- Load Hut spawning logic (Disabled for debugging)
--- dofile(minetest.get_modpath("civi_npc") .. "/huts.lua")
+-- Load Hut spawning logic
+dofile(minetest.get_modpath("civi_npc") .. "/huts.lua")

@@ -65,8 +65,8 @@ minetest.register_decoration({
     schematic = minetest.get_modpath("civi_npc") .. "/../../schematics/lumberjack_hut.mts",
     flags = "place_center_x, place_center_z, force_placement",
     rotation = "random",
-    -- Offset to ensure correct placement on ground (raised by 2 compared to before)
-    place_offset_y = 1,
+    -- Offset to ensure correct placement on ground (buried by 2 to accommodate foundation)
+    place_offset_y = -2,
 })
 
 print("[civi_npc] Hut spawning logic initialized")

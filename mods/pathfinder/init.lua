@@ -146,8 +146,9 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 			local path = {}
 			local temp_idx = current_index
 			repeat
-				if not closedSet[temp_idx] and temp_idx ~= start_index then break end
+				-- Look up in closedSet first, fall back to openSet (goal may not be closed yet)
 				local node_data = closedSet[temp_idx] or openSet[temp_idx]
+				if not node_data then break end  -- dead end in chain, should not happen
 				table.insert(path, node_data.pos)
 				temp_idx = node_data.parent
 			until not temp_idx
@@ -238,3 +239,6 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 	minetest.chat_send_all(audit)
 	return nil
 end
+
+-- Load interactive debug commands (/p2nt, /p2stop)
+dofile(minetest.get_modpath("pathfinder") .. "/commands.lua")

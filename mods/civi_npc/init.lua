@@ -1,5 +1,27 @@
 print("[myCraftCivi] Loading civi_npc...")
 
+-- Debug-Flags fuer NPC-Kontrolle im laufenden Betrieb
+npc_quiet  = false   -- [NPC] Chat-Meldungen unterdruecken
+npc_paused = false   -- Gesamte NPC-KI einfrieren (auch Pathfinder-Ausgaben stoppen)
+
+minetest.register_chatcommand("npc_quiet", {
+    description = "[NPC] Chat-Ausgaben ein/ausschalten",
+    privs = {interact = true},
+    func = function(name, param)
+        npc_quiet = not npc_quiet
+        return true, "[NPC] Chat: " .. (npc_quiet and "STUMM" or "AKTIV")
+    end
+})
+
+minetest.register_chatcommand("npc_pause", {
+    description = "Gesamte NPC-KI pausieren/fortsetzen (stoppt auch Pathfinder-Logs)",
+    privs = {interact = true},
+    func = function(name, param)
+        npc_paused = not npc_paused
+        return true, "[NPC] KI: " .. (npc_paused and "PAUSIERT" or "AKTIV")
+    end
+})
+
 -- Register the Lumberjack mob
 -- Table to map tree trunks to their respective saplings for smart replanting
 local trunk_to_sapling = {
@@ -12,26 +34,56 @@ local trunk_to_sapling = {
 
 -- Utility: Find a valid air node next to a target where the NPC can stand
 local function find_standing_spot(target_pos)
-    local neighbor_offsets = {
-        {x=1,z=0}, {x=-1,z=0}, {x=0,z=1}, {x=0,z=-1},
-        {x=1,z=1}, {x=-1,z=-1}, {x=1,z=-1}, {x=-1,z=1}
-    }
-    -- Check at same Y, Y-1, Y+1 (Prioritize ground level)
-    for _, dy in ipairs({0, -1, 1}) do
-        for _, off in ipairs(neighbor_offsets) do
-            local p = {x=target_pos.x+off.x, y=target_pos.y+dy, z=target_pos.z+off.z}
-            local node = minetest.get_node(p)
-            local node_below = minetest.get_node({x=p.x, y=p.y-1, z=p.z})
-            local node_above = minetest.get_node({x=p.x, y=p.y+1, z=p.z})
-            
-            local def = minetest.registered_nodes[node.name]
-            local def_below = minetest.registered_nodes[node_below.name]
-            local def_above = minetest.registered_nodes[node_above.name]
 
-            if def and not def.walkable and 
-               def_below and def_below.walkable and
-               def_above and not def_above.walkable then
-                return p
+    -- Kann man physikalisch darin stehen? (Blaetter/Gras/Flora = ja)
+    local function is_passable(name)
+        local def = minetest.registered_nodes[name]
+        if not def or not def.walkable then return true end
+        if minetest.get_item_group(name, "leaves")        > 0 then return true end
+        if minetest.get_item_group(name, "flora")         > 0 then return true end
+        if minetest.get_item_group(name, "grass")         > 0 then return true end
+        if minetest.get_item_group(name, "attached_node") > 0 then return true end
+        return false
+    end
+
+    -- Echter fester Boden (kein Stamm, keine Blaetter)?
+    local function is_solid_ground(name)
+        local def = minetest.registered_nodes[name]
+        if not def or not def.walkable then return false end
+        if minetest.get_item_group(name, "tree")          > 0 then return false end
+        if minetest.get_item_group(name, "leaves")        > 0 then return false end
+        if minetest.get_item_group(name, "flora")         > 0 then return false end
+        if minetest.get_item_group(name, "grass")         > 0 then return false end
+        if minetest.get_item_group(name, "attached_node") > 0 then return false end
+        return true
+    end
+
+    local neighbor_offsets = {
+        {x=1,z=0}, {x=-1,z=0}, {x=0,z=1},  {x=0,z=-1},
+        {x=1,z=1}, {x=-1,z=-1},{x=1,z=-1}, {x=-1,z=1}
+    }
+
+    -- Pro Richtung: Y von oben nach unten scannen, ersten gueltigen Standplatz nehmen
+    for _, off in ipairs(neighbor_offsets) do
+        local cx = target_pos.x + off.x
+        local cz = target_pos.z + off.z
+        for dy = 3, -5, -1 do
+            local cy      = target_pos.y + dy
+            local n_here  = minetest.get_node({x=cx, y=cy,   z=cz}).name
+            local n_below = minetest.get_node({x=cx, y=cy-1, z=cz}).name
+            local n_above = minetest.get_node({x=cx, y=cy+1, z=cz}).name
+            if is_passable(n_here) and is_solid_ground(n_below) and is_passable(n_above) then
+                -- Muss von der Seite erreichbar sein (kein 1-Block-Loch, das nur von oben zugaenglich ist)
+                local horizontal_ok = false
+                for _, ho in ipairs({{x=1,z=0},{x=-1,z=0},{x=0,z=1},{x=0,z=-1}}) do
+                    if is_passable(minetest.get_node({x=cx+ho.x, y=cy, z=cz+ho.z}).name) then
+                        horizontal_ok = true
+                        break
+                    end
+                end
+                if horizontal_ok then
+                    return {x=cx, y=cy, z=cz}
+                end
             end
         end
     end
@@ -76,6 +128,12 @@ mobs:register_mob("civi_npc:lumberjack", {
     },
 
     do_custom = function(self, dtime)
+        -- Wenn NPC pausiert ist, sofort zurueck (keine KI, keine Pathfinder-Calls)
+        if npc_paused then
+            self:set_velocity(0)
+            return true
+        end
+
         -- Init internal state
         if not self.inv then
             self.inv = { wood = 0, saplings = {} }
@@ -276,7 +334,7 @@ mobs:register_mob("civi_npc:lumberjack", {
                     self.target_tree = nil
                     self.target_chest = nil
                     self.target_failures = 0
-                    minetest.chat_send_all("[NPC] Target unreachable. Entering recovery...")
+                    if not npc_quiet then minetest.chat_send_all("[NPC] Target unreachable. Entering recovery...") end
                 end
             end
         else
@@ -295,6 +353,8 @@ mobs:register_mob("civi_npc:lumberjack", {
             local threshold = (#self.path_way == 1) and 2.2 or 0.6
             if d2node < threshold then
                 table.remove(self.path_way, 1)
+                self.stuck_timer = 0       -- Fortschritt! Stuck-Timer zuruecksetzen.
+                self.last_pos = nil        -- Position-Referenz ebenfalls zuruecksetzen
                 if #self.path_way == 0 then
                     self:set_velocity(0)
                 end
@@ -303,27 +363,26 @@ mobs:register_mob("civi_npc:lumberjack", {
                 self.object:set_yaw(minetest.dir_to_yaw(direction))
                 self:set_velocity(self.walk_velocity)
                 self:set_animation("walk")
-                
-                -- Stuck detection: Only jump if we are truly stuck far from the goal
-                local vel = self.object:get_velocity()
-                if vel and (math.abs(vel.x) < 0.1 and math.abs(vel.z) < 0.1) and (d2node > 2.2) then
+
+                -- Sprung bei haengerem Blockl: mit Cooldown, nicht jeden Tick
+                self.jump_cooldown = (self.jump_cooldown or 0) - dtime
+                if next_p.y > pos.y + 0.1 and self.jump_cooldown <= 0 then
                     self:do_jump()
+                    self.jump_cooldown = 0.5
                 end
-                
-                -- Predictive Jump: If wp is higher, force a jump immediately
-                if next_p.y > pos.y + 0.1 then
-                    self:do_jump()
-                end
-                
-                -- Reset greedy timer if we found a path
-                self.greedy_timer = 0
-                
-                -- Check if we are physically blocked (stuck)
+
+                -- Stuck-Erkennung: nur wenn wir uns WIRKLICH nicht bewegen
+                -- (Vergleich mit Position vor 3 Sekunden, nicht mit aktuellem Velocity)
                 self.stuck_timer = (self.stuck_timer or 0) + dtime
-                if self.stuck_timer > 2.0 then
-                    -- If we are stuck for 2 seconds at the same spot, recalculate path immediately
-                    self.path_way = nil
-                    self.path_timer = 3.1
+                if self.stuck_timer >= 3.0 then
+                    local last = self.last_pos
+                    if last and vector.distance(pos, last) < 0.5 then
+                        -- Wirklich festgesteckt: Pfad neu berechnen
+                        self.path_way = nil
+                        self.path_timer = 3.1
+                    end
+                    -- Neue Referenzposition merken
+                    self.last_pos   = vector.new(pos)
                     self.stuck_timer = 0
                 end
             end
@@ -354,7 +413,7 @@ mobs:register_mob("civi_npc:lumberjack", {
                                 self.target_chest = chest_pos
                                 self.stand_target = stand_spot
                                 self.path_timer = 3.1
-                                minetest.chat_send_all("[NPC] Heading to chest at "..minetest.pos_to_string(chest_pos))
+                                if not npc_quiet then minetest.chat_send_all("[NPC] Heading to chest at "..minetest.pos_to_string(chest_pos)) end
                                 return true
                             else
                                 self.blacklist[minetest.hash_node_position(chest_pos)] = minetest.get_gametime() + 300
@@ -404,7 +463,7 @@ mobs:register_mob("civi_npc:lumberjack", {
                                 self.target_tree = found_root
                                 self.stand_target = stand_spot
                                 self.path_timer = 3.1 -- Force immediate pathfinding
-                                minetest.chat_send_all("[NPC] Nearest unique tree found at "..minetest.pos_to_string(found_root))
+                                if not npc_quiet then minetest.chat_send_all("[NPC] Nearest unique tree found at "..minetest.pos_to_string(found_root)) end
                                 return true
                             else
                                 self.blacklist[minetest.hash_node_position(found_root)] = minetest.get_gametime() + 300

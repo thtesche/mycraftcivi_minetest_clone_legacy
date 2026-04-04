@@ -1,7 +1,7 @@
 print("[myCraftCivi] Loading civi_npc...")
 
 -- Debug-Flags fuer NPC-Kontrolle im laufenden Betrieb
-npc_quiet  = false   -- [NPC] Chat-Meldungen unterdruecken
+npc_quiet  = true    -- [NPC] Chat-Meldungen unterdruecken (standardmäßig stumm)
 npc_paused = false   -- Gesamte NPC-KI einfrieren (auch Pathfinder-Ausgaben stoppen)
 npc_debug  = false   -- Detaillierte Pathfinding-Logs pro Aufruf
 
@@ -10,7 +10,7 @@ minetest.register_chatcommand("npc_quiet", {
     privs = {interact = true},
     func = function(name, param)
         npc_quiet = not npc_quiet
-        return true, "[NPC] Chat: " .. (npc_quiet and "STUMM" or "AKTIV")
+        return true, "[NPC] Chat: " .. (npc_quiet and "STUMM (Standard)" or "AKTIV")
     end
 })
 
@@ -140,16 +140,14 @@ mobs:register_mob("civi_npc:lumberjack", {
             return true
         end
 
-        -- Init internal state
         if not self.inv then
-            self.inv = { wood = 0, saplings = {} }
+            self.inv = { wood = 0, saplings = {}, items = {} }
             self.blacklist = {} -- [pos_hash] = expiration_time
             self.target_failures = 0
         end
-        -- Migration guard: convert old number-format saplings to the new table format
-        if type(self.inv.saplings) == "number" then
-            self.inv.saplings = {}
-        end
+        -- Migration guards
+        if type(self.inv.saplings) == "number" then self.inv.saplings = {} end
+        if not self.inv.items then self.inv.items = {} end
         self.greedy_timer = self.greedy_timer or 0
         self.blacklist = self.blacklist or {}
         self.target_failures = self.target_failures or 0
@@ -210,11 +208,11 @@ mobs:register_mob("civi_npc:lumberjack", {
                             self.inv.wood = 0
                         end
 
-                        -- Deposit all saplings
-                        for name, count in pairs(self.inv.saplings) do
+                        -- Deposit all miscellaneous items (fruits, etc.)
+                        for name, count in pairs(self.inv.items) do
                             if count > 0 then
                                 inv:add_item("main", ItemStack(name .. " " .. count))
-                                self.inv.saplings[name] = 0
+                                self.inv.items[name] = 0
                             end
                         end
 
@@ -258,26 +256,33 @@ mobs:register_mob("civi_npc:lumberjack", {
                                 for z_offset = -3, 3 do
                                     local check_pos = {x = self.target_tree.x + x_offset, y = self.target_tree.y + y_offset, z = self.target_tree.z + z_offset}
                                     local node = minetest.get_node(check_pos)
-                                    if minetest.get_item_group(node.name, "tree") > 0 then
+                                    local is_tree = minetest.get_item_group(node.name, "tree") > 0
+                                    local is_leaves = minetest.get_item_group(node.name, "leaves") > 0
+                                    local is_fruit = minetest.get_item_group(node.name, "leafdecay") > 0 -- Includes apples
+
+                                    if is_tree or is_leaves or is_fruit then
                                         local drops = minetest.get_node_drops(node.name, "")
                                         for _, item in ipairs(drops) do
                                             local stack = ItemStack(item)
-                                            if minetest.get_item_group(stack:get_name(), "tree") > 0 or stack:get_name() == "civi_core:tree" then
+                                            local iname = stack:get_name()
+                                            local is_sapling = minetest.get_item_group(iname, "sapling") > 0 or 
+                                                             iname == "civi_core:sapling" or 
+                                                             iname == "civi_core:jungle_sapling"
+                                            
+                                            if minetest.get_item_group(iname, "tree") > 0 or iname == "civi_core:tree" then
                                                 self.inv.wood = self.inv.wood + stack:get_count()
-                                            elseif minetest.get_item_group(stack:get_name(), "sapling") > 0 or stack:get_name() == "civi_core:sapling" then
+                                            elseif is_sapling then
                                                 local name = stack:get_name()
                                                 self.inv.saplings[name] = (self.inv.saplings[name] or 0) + stack:get_count()
+                                            else
+                                                -- Collect fruits, but EXCLUDE leaf nodes (as items)
+                                                -- Also exclude grass/shrubs if they somehow drop
+                                                if minetest.get_item_group(iname, "leaves") == 0 and 
+                                                   minetest.get_item_group(iname, "grass") == 0 and
+                                                   minetest.get_item_group(iname, "flora") == 0 then
+                                                    self.inv.items[iname] = (self.inv.items[iname] or 0) + stack:get_count()
+                                                end
                                             end
-                                        end
-                                        minetest.remove_node(check_pos)
-                                    elseif minetest.get_item_group(node.name, "leaves") > 0 then
-                                        local drops = minetest.get_node_drops(node.name, "")
-                                        for _, item in ipairs(drops) do
-                                            local stack = ItemStack(item)
-                                            if minetest.get_item_group(stack:get_name(), "sapling") > 0 or stack:get_name() == "civi_core:sapling" then
-                                                local name = stack:get_name()
-                                                self.inv.saplings[name] = (self.inv.saplings[name] or 0) + stack:get_count()
-                                            else minetest.add_item(check_pos, item) end
                                         end
                                         minetest.remove_node(check_pos)
                                     end
@@ -287,24 +292,45 @@ mobs:register_mob("civi_npc:lumberjack", {
                         
                         -- Smart Replanting
                         local sapling_to_plant = trunk_to_sapling[tnode.name] or "civi_core:sapling"
-                        local pos_below = {x=self.target_tree.x, y=self.target_tree.y-1, z=self.target_tree.z}
-                        local node_below = minetest.get_node(pos_below)
-                        if minetest.get_item_group(node_below.name, "soil") > 0 then
-                            -- Check if we have the specific sapling
-                            if (self.inv.saplings[sapling_to_plant] or 0) > 0 then
-                                minetest.set_node(self.target_tree, {name = sapling_to_plant})
-                                self.inv.saplings[sapling_to_plant] = self.inv.saplings[sapling_to_plant] - 1
-                                minetest.sound_play("default_place_node", {pos = self.target_tree, gain = 0.5})
-                            else
-                                -- Fallback to ANY sapling in the table
-                                for s_name, count in pairs(self.inv.saplings) do
-                                    if count > 0 then
-                                        minetest.set_node(self.target_tree, {name = s_name})
-                                        self.inv.saplings[s_name] = self.inv.saplings[s_name] - 1
-                                        minetest.sound_play("default_place_node", {pos = self.target_tree, gain = 0.5})
-                                        break
+                        
+                        if npc_debug then
+                            local s_count = self.inv.saplings[sapling_to_plant] or 0
+                            minetest.chat_send_all("[NPC-DBG] Replant check: "..sapling_to_plant.." count="..s_count)
+                        end
+
+                        -- For large trees like Jungle Trees, check a 2x2 area for replanting
+                        local plant_offsets = {{x=0, z=0}}
+                        if tnode.name == "civi_core:jungletree" then
+                            plant_offsets = {{x=0, z=0}, {x=1, z=0}, {x=0, z=1}, {x=1, z=1}}
+                        end
+
+                        for _, p_off in ipairs(plant_offsets) do
+                            local p_pos = {x=self.target_tree.x + p_off.x, y=self.target_tree.y, z=self.target_tree.z + p_off.z}
+                            local pos_below = {x=p_pos.x, y=p_pos.y-1, z=p_pos.z}
+                            local node_below = minetest.get_node(pos_below)
+                            
+                            local is_soil = minetest.get_item_group(node_below.name, "soil") > 0 or 
+                                            minetest.get_item_group(node_below.name, "dirt") > 0
+                            
+                            if is_soil and minetest.get_node(p_pos).name == "air" then
+                                -- Check if we have the specific sapling
+                                if (self.inv.saplings[sapling_to_plant] or 0) > 0 then
+                                    minetest.set_node(p_pos, {name = sapling_to_plant})
+                                    self.inv.saplings[sapling_to_plant] = self.inv.saplings[sapling_to_plant] - 1
+                                    minetest.sound_play("default_place_node", {pos = p_pos, gain = 0.5})
+                                else
+                                    -- Fallback to ANY sapling in the table
+                                    for s_name, count in pairs(self.inv.saplings) do
+                                        if count > 0 then
+                                            minetest.set_node(p_pos, {name = s_name})
+                                            self.inv.saplings[s_name] = self.inv.saplings[s_name] - 1
+                                            minetest.sound_play("default_place_node", {pos = p_pos, gain = 0.5})
+                                            break
+                                        end
                                     end
                                 end
+                            elseif npc_debug then
+                                minetest.chat_send_all("[NPC-DBG] Replant FAIL at "..minetest.pos_to_string(p_pos)..": soil="..tostring(is_soil).." node="..minetest.get_node(p_pos).name)
                             end
                         end
 

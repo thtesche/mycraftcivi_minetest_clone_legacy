@@ -158,7 +158,7 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 			for _, p in ipairs(reverse_path) do
 				minetest.add_particlespawner({
 					amount = 40,
-					time = 30,
+					time = 5,
 					minpos = {x=p.x-0.2, y=p.y+1.2, z=p.z-0.2},
 					maxpos = {x=p.x+0.2, y=p.y+1.3, z=p.z+0.2},
 					minvel = {x=-0.1, y=0.1, z=-0.1},

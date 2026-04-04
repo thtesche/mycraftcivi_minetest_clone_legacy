@@ -251,43 +251,35 @@ mobs:register_mob("civi_npc:lumberjack", {
                     self.chopping_timer = (self.chopping_timer or 0) + dtime
                     if self.chopping_timer > 2.0 then
                         self.chopping_timer = 0
-                        for y_offset = -1, 30 do
-                            for x_offset = -3, 3 do
-                                for z_offset = -3, 3 do
-                                    local check_pos = {x = self.target_tree.x + x_offset, y = self.target_tree.y + y_offset, z = self.target_tree.z + z_offset}
-                                    local node = minetest.get_node(check_pos)
-                                    local is_tree = minetest.get_item_group(node.name, "tree") > 0
-                                    local is_leaves = minetest.get_item_group(node.name, "leaves") > 0
-                                    local is_fruit = minetest.get_item_group(node.name, "leafdecay") > 0 -- Includes apples
+                        local p1 = {x = self.target_tree.x - 6, y = self.target_tree.y - 1, z = self.target_tree.z - 6}
+                        local p2 = {x = self.target_tree.x + 6, y = self.target_tree.y + 45, z = self.target_tree.z + 6}
+                        local nodes = minetest.find_nodes_in_area(p1, p2, {"group:tree", "group:leaves", "group:leafdecay"})
 
-                                    if is_tree or is_leaves or is_fruit then
-                                        local drops = minetest.get_node_drops(node.name, "")
-                                        for _, item in ipairs(drops) do
-                                            local stack = ItemStack(item)
-                                            local iname = stack:get_name()
-                                            local is_sapling = minetest.get_item_group(iname, "sapling") > 0 or 
-                                                             iname == "civi_core:sapling" or 
-                                                             iname == "civi_core:jungle_sapling"
-                                            
-                                            if minetest.get_item_group(iname, "tree") > 0 or iname == "civi_core:tree" then
-                                                self.inv.wood = self.inv.wood + stack:get_count()
-                                            elseif is_sapling then
-                                                local name = stack:get_name()
-                                                self.inv.saplings[name] = (self.inv.saplings[name] or 0) + stack:get_count()
-                                            else
-                                                -- Collect fruits, but EXCLUDE leaf nodes (as items)
-                                                -- Also exclude grass/shrubs if they somehow drop
-                                                if minetest.get_item_group(iname, "leaves") == 0 and 
-                                                   minetest.get_item_group(iname, "grass") == 0 and
-                                                   minetest.get_item_group(iname, "flora") == 0 then
-                                                    self.inv.items[iname] = (self.inv.items[iname] or 0) + stack:get_count()
-                                                end
-                                            end
-                                        end
-                                        minetest.remove_node(check_pos)
+                        for _, p in ipairs(nodes) do
+                            local node = minetest.get_node(p)
+                            local drops = minetest.get_node_drops(node.name, "")
+                            for _, item in ipairs(drops) do
+                                local stack = ItemStack(item)
+                                local iname = stack:get_name()
+                                local is_sapling = minetest.get_item_group(iname, "sapling") > 0 or 
+                                                 iname == "civi_core:sapling" or 
+                                                 iname == "civi_core:jungle_sapling"
+                                
+                                if minetest.get_item_group(iname, "tree") > 0 or iname == "civi_core:tree" then
+                                    self.inv.wood = self.inv.wood + stack:get_count()
+                                elseif is_sapling then
+                                    local name = stack:get_name()
+                                    self.inv.saplings[name] = (self.inv.saplings[name] or 0) + stack:get_count()
+                                else
+                                    -- Collect fruits/drops, but EXCLUDE leaf nodes (as items)
+                                    if minetest.get_item_group(iname, "leaves") == 0 and 
+                                       minetest.get_item_group(iname, "grass") == 0 and
+                                       minetest.get_item_group(iname, "flora") == 0 then
+                                        self.inv.items[iname] = (self.inv.items[iname] or 0) + stack:get_count()
                                     end
                                 end
                             end
+                            minetest.remove_node(p)
                         end
                         
                         -- Smart Replanting

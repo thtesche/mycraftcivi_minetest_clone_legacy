@@ -2,10 +2,9 @@ local function is_physically_solid(name, pos)
 	local def = minetest.registered_nodes[name]
 	if not def then return false end
 	if not def.walkable then return false end
+	-- Nur Blaetter und Flora (walkable=true aber physikalisch passierbar)
 	if minetest.get_item_group(name, "leaves") > 0 then return false end
-	if minetest.get_item_group(name, "flora") > 0 then return false end
-	if minetest.get_item_group(name, "grass") > 0 then return false end
-	if minetest.get_item_group(name, "attached_node") > 0 then return false end
+	-- NICHT grass-Gruppe ausschliessen: civi_core:dirt_with_grass hat grass=1 aber ist solid!
 	return true
 end
 
@@ -15,10 +14,9 @@ local function walkable(node, pos, current_pos)
 	local def = minetest.registered_nodes[name]
 	if not def then return false end
 	if not def.walkable then return false end
-	-- Tree leaves and grass are traversable
+	-- Nur Blaetter: walkable=true aber Entitaeten koennen durchgehen
+	-- NICHT grass-Gruppe: civi_core:dirt_with_grass hat grass=1 aber ist solid!
 	if minetest.get_item_group(name, "leaves") > 0 then return false end
-	if minetest.get_item_group(name, "flora") > 0 then return false end
-	if minetest.get_item_group(name, "grass") > 0 then return false end
 	return true
 end
 
@@ -223,13 +221,13 @@ function pathfinder.find_path(pos, endpos, entity, dtime)
 			end
 		end
 
-		if count > 10000 or (minetest.get_us_time() - start_time)/1000 > 100 then
+		if count > 30000 or (minetest.get_us_time() - start_time)/1000 > 500 then
 			break
 		end
 	until count < 1
 
 	-- Failure Diagnostics
-	minetest.chat_send_all("[Pathfinder] FAIL: No path found after "..steps_checked.." nodes.")
+	minetest.chat_send_all("[Pathfinder] FAIL: Search limit reached after "..steps_checked.." steps (count="..count..").")
 	local audit = "[Pathfinder] TARGET AUDIT at "..minetest.pos_to_string(endpos)..": "
 	local adirs = {{x=1,y=0,z=0},{x=-1,y=0,z=0},{x=0,y=0,z=1},{x=0,y=0,z=-1},{x=0,y=1,z=0},{x=0,y=-1,z=0}}
 	for _, d in ipairs(adirs) do

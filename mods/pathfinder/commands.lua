@@ -102,26 +102,21 @@ minetest.register_chatcommand("p2nt", {
         -- Naechsten freien Standplatz neben der Baumwurzel finden
         local function find_stand_spot_near_tree(root, start_pos)
 
-            -- Kann man physikalisch darin stehen? (Blätter/Gras/Flora = ja)
+            -- Kann man physikalisch darin stehen?
+            -- WICHTIG: grass-Gruppe NICHT ausschliessen (dirt_with_grass hat grass=1 aber ist solid!)
             local function is_passable(name)
                 local def = minetest.registered_nodes[name]
                 if not def or not def.walkable then return true end
-                if minetest.get_item_group(name, "leaves")        > 0 then return true end
-                if minetest.get_item_group(name, "flora")         > 0 then return true end
-                if minetest.get_item_group(name, "grass")         > 0 then return true end
-                if minetest.get_item_group(name, "attached_node") > 0 then return true end
+                if minetest.get_item_group(name, "leaves") > 0 then return true end
                 return false
             end
 
-            -- Echter fester Boden (kein Baumstamm, keine Blätter)?
+            -- Echter fester Boden (kein Baumstamm, keine Blaetter)?
             local function is_solid_ground(name)
                 local def = minetest.registered_nodes[name]
                 if not def or not def.walkable then return false end
-                if minetest.get_item_group(name, "tree")          > 0 then return false end
-                if minetest.get_item_group(name, "leaves")        > 0 then return false end
-                if minetest.get_item_group(name, "flora")         > 0 then return false end
-                if minetest.get_item_group(name, "grass")         > 0 then return false end
-                if minetest.get_item_group(name, "attached_node") > 0 then return false end
+                if minetest.get_item_group(name, "tree")   > 0 then return false end
+                if minetest.get_item_group(name, "leaves") > 0 then return false end
                 return true
             end
 

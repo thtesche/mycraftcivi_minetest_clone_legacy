@@ -3,6 +3,7 @@ print("[myCraftCivi] Loading civi_npc...")
 -- Debug-Flags fuer NPC-Kontrolle im laufenden Betrieb
 npc_quiet  = false   -- [NPC] Chat-Meldungen unterdruecken
 npc_paused = false   -- Gesamte NPC-KI einfrieren (auch Pathfinder-Ausgaben stoppen)
+npc_debug  = false   -- Detaillierte Pathfinding-Logs pro Aufruf
 
 minetest.register_chatcommand("npc_quiet", {
     description = "[NPC] Chat-Ausgaben ein/ausschalten",
@@ -22,6 +23,15 @@ minetest.register_chatcommand("npc_pause", {
     end
 })
 
+minetest.register_chatcommand("npc_debug", {
+    description = "Detaillierte NPC-Pathfinding Logs ein/ausschalten",
+    privs = {interact = true},
+    func = function(name, param)
+        npc_debug = not npc_debug
+        return true, "[NPC] Debug: " .. (npc_debug and "AN" or "AUS")
+    end
+})
+
 -- Register the Lumberjack mob
 -- Table to map tree trunks to their respective saplings for smart replanting
 local trunk_to_sapling = {
@@ -35,26 +45,22 @@ local trunk_to_sapling = {
 -- Utility: Find a valid air node next to a target where the NPC can stand
 local function find_standing_spot(target_pos)
 
-    -- Kann man physikalisch darin stehen? (Blaetter/Gras/Flora = ja)
+    -- Kann man physikalisch darin stehen?
+    -- Luft, dekorative Flora (walkable=false) und Blaetter = passierbar
+    -- WICHTIG: grass-Gruppe NICHT ausschliessen da civi_core:dirt_with_grass group grass=1 hat!
     local function is_passable(name)
         local def = minetest.registered_nodes[name]
-        if not def or not def.walkable then return true end
-        if minetest.get_item_group(name, "leaves")        > 0 then return true end
-        if minetest.get_item_group(name, "flora")         > 0 then return true end
-        if minetest.get_item_group(name, "grass")         > 0 then return true end
-        if minetest.get_item_group(name, "attached_node") > 0 then return true end
-        return false
+        if not def or not def.walkable then return true end   -- Luft, Dekogras, etc.
+        if minetest.get_item_group(name, "leaves") > 0 then return true end  -- Blaetter
+        return false  -- alle anderen walkable=true Bloecke sind solid
     end
 
-    -- Echter fester Boden (kein Stamm, keine Blaetter)?
+    -- Echter fester Boden (kein Baumstamm, keine Blaetter)?
     local function is_solid_ground(name)
         local def = minetest.registered_nodes[name]
         if not def or not def.walkable then return false end
-        if minetest.get_item_group(name, "tree")          > 0 then return false end
-        if minetest.get_item_group(name, "leaves")        > 0 then return false end
-        if minetest.get_item_group(name, "flora")         > 0 then return false end
-        if minetest.get_item_group(name, "grass")         > 0 then return false end
-        if minetest.get_item_group(name, "attached_node") > 0 then return false end
+        if minetest.get_item_group(name, "tree")   > 0 then return false end
+        if minetest.get_item_group(name, "leaves") > 0 then return false end
         return true
     end
 
@@ -111,8 +117,8 @@ mobs:register_mob("civi_npc:lumberjack", {
     lava_damage = 4,
     fall_damage = 0,
     pathfinding = 2,
-    jump_height = 1.6,
-    jump_chance = 80,
+    jump_height = 2.0,
+    fear_height = 3,
     can_leap = true,
     animation = {
         speed_normal = 30,
@@ -161,13 +167,20 @@ mobs:register_mob("civi_npc:lumberjack", {
         -- A. Chest Interaction
         if self.target_chest then
             local target_node = minetest.get_node(self.target_chest)
-            if target_node.name ~= "civi_storage:chest" and target_node.name ~= "civi_storage:chest_locked" then
+            local tname = target_node.name
+            if tname ~= "civi_storage:chest" and tname ~= "civi_storage:chest_locked" and 
+               tname ~= "civi_storage:chest_open" and tname ~= "civi_storage:chest_locked_open" then
+                if npc_debug then minetest.chat_send_all("[NPC-DBG] Abandoning chest: node is "..tname) end
                 self.target_chest = nil
+                self.stand_target = nil
             else
-                local d2d = vector.distance({x=pos.x, y=0, z=pos.z}, {x=self.target_chest.x, y=0, z=self.target_chest.z})
+                local chest_center = {x=self.target_chest.x + 0.5, y=self.target_chest.y + 0.5, z=self.target_chest.z + 0.5}
+                local d2d = vector.distance({x=pos.x, y=0, z=pos.z}, {x=chest_center.x, y=0, z=chest_center.z})
                 local dy = math.abs(pos.y - self.target_chest.y)
 
-                if d2d <= 2.2 and dy <= 3.0 then
+                if npc_debug then minetest.chat_send_all("[NPC-DBG] ChestDist: d2d="..string.format("%.2f", d2d).." dy="..string.format("%.2f", dy)) end
+
+                if d2d <= 3.5 and dy <= 3.0 then
                     self:set_velocity(0)
                     self.path_way = nil
                     self:set_animation("punch")
@@ -227,9 +240,13 @@ mobs:register_mob("civi_npc:lumberjack", {
             if minetest.get_item_group(tnode.name, "tree") == 0 then
                 self.target_tree = nil
             else
-                local dist_2d = vector.distance({x=pos.x, y=0, z=pos.z}, {x=self.target_tree.x, y=0, z=self.target_tree.z})
+                local tree_center = {x=self.target_tree.x + 0.5, y=self.target_tree.y + 0.5, z=self.target_tree.z + 0.5}
+                local dist_2d = vector.distance({x=pos.x, y=0, z=pos.z}, {x=tree_center.x, y=0, z=tree_center.z})
                 local dist_y = math.abs(pos.y - self.target_tree.y)
-                if dist_2d <= 3.0 and dist_y <= 15.0 then
+                
+                if npc_debug then minetest.chat_send_all("[NPC-DBG] TreeDist: d2d="..string.format("%.2f", dist_2d).." dy="..string.format("%.2f", dist_y)) end
+
+                if dist_2d <= 4.0 and dist_y <= 15.0 then
                     self:set_velocity(0)
                     self.path_way = nil
                     self:set_animation("punch")
@@ -315,24 +332,42 @@ mobs:register_mob("civi_npc:lumberjack", {
                 self.path_timer = 0
                 if pathfinder and pathfinder.find_path then
                     local find_target = self.stand_target or target
-                    local path = pathfinder.find_path(pos, find_target, self, dtime)
-                    if path then
-                        self.path_way = path
+
+                    if npc_debug then
+                        local raw_pos   = self.object:get_pos()
+                        local rnd_pos   = vector.round(raw_pos)
+                        local node_here = minetest.get_node(rnd_pos).name
+                        minetest.chat_send_all(
+                            "[NPC-DBG] raw=" .. string.format("(%.2f,%.2f,%.2f)", raw_pos.x, raw_pos.y, raw_pos.z) ..
+                            " rnd=" .. minetest.pos_to_string(rnd_pos) ..
+                            " node=" .. node_here ..
+                            " stand=" .. (self.stand_target and minetest.pos_to_string(self.stand_target) or "nil") ..
+                            " target=" .. minetest.pos_to_string(find_target)
+                        )
+                    end
+
+                    self.path_way = pathfinder.find_path(pos, self.stand_target, self)
+                    if self.path_way then
                         self.target_failures = 0
+                        self.greedy_timer = 0 -- Reset greedy if path found
                     else
+                        if npc_debug then
+                            minetest.chat_send_all("[NPC-DBG] Kein Pfad. Failures=" .. (self.target_failures + 1))
+                        end
                         self.target_failures = self.target_failures + 1
-                        -- Greedy Fallback: try walking directly towards it for 5s
-                        self.greedy_timer = 5.0
                         self.greedy_timer = 5.0
                     end
                 end
                 
                 if self.target_failures >= 4 then
-                    -- Give up on this target
+                    -- Give up on this target — alles zuruecksetzen
                     local hash = minetest.hash_node_position(target)
                     self.blacklist[hash] = minetest.get_gametime() + 60
-                    self.target_tree = nil
-                    self.target_chest = nil
+                    self.target_tree   = nil
+                    self.target_chest  = nil
+                    self.stand_target  = nil   -- gecachten Standplatz vergessen!
+                    self.path_way      = nil
+                    self.last_target   = nil   -- Zwangsrecalc beim naechsten Target
                     self.target_failures = 0
                     if not npc_quiet then minetest.chat_send_all("[NPC] Target unreachable. Entering recovery...") end
                 end
@@ -350,7 +385,8 @@ mobs:register_mob("civi_npc:lumberjack", {
             local d2node = vector.distance({x=pos.x, y=0, z=pos.z}, {x=target_wp.x, y=0, z=target_wp.z})
             
             -- Arrival threshold: Stop earlier if it's the final node to avoid getting stuck or lunging
-            local threshold = (#self.path_way == 1) and 2.2 or 0.6
+            -- Arrival threshold: Final node needs to be reached more precisely
+            local threshold = (#self.path_way == 1) and 1.2 or 0.6
             if d2node < threshold then
                 table.remove(self.path_way, 1)
                 self.stuck_timer = 0       -- Fortschritt! Stuck-Timer zuruecksetzen.
@@ -389,6 +425,32 @@ mobs:register_mob("civi_npc:lumberjack", {
         end
 
         -- ==== 1.5 GREEDY FALLBACK MOVEMENT ====
+        if target and not self.path_way and (self.greedy_timer or 0) > 0 then
+            self.greedy_timer = self.greedy_timer - dtime
+            local direction = vector.direction({x=pos.x, y=0, z=pos.z}, {x=target.x, y=0, z=target.z})
+            self.object:set_yaw(minetest.dir_to_yaw(direction))
+            self:set_velocity(self.walk_velocity)
+            self:set_animation("walk")
+            
+            -- Simple Obstacle Jumping
+            self.jump_cooldown = (self.jump_cooldown or 0) - dtime
+            local scan_pos = vector.add(pos, vector.multiply(direction, 0.8))
+            if minetest.get_node(scan_pos).name ~= "air" and self.jump_cooldown <= 0 then
+                self:do_jump()
+                self.jump_cooldown = 1.0
+            end
+
+            -- If we are in greedy mode and truly stuck, fail sooner
+            self.stuck_timer = (self.stuck_timer or 0) + dtime
+            if self.stuck_timer > 3.0 then
+                if self.last_pos and vector.distance(pos, self.last_pos) < 0.2 then
+                    self.greedy_timer = 0 -- Stop greedy
+                    self.target_failures = 4 -- Force recovery/blacklist
+                end
+                self.last_pos = vector.new(pos)
+                self.stuck_timer = 0
+            end
+        end
 
         -- ==== 3. SEARCH LOGIC (Tree or Chest) ====
         self.search_timer = (self.search_timer or 0) + dtime
@@ -401,22 +463,31 @@ mobs:register_mob("civi_npc:lumberjack", {
                     local crange = 110
                     local cp1 = {x=pos.x-crange, y=pos.y-crange, z=pos.z-crange}
                     local cp2 = {x=pos.x+crange, y=pos.y+crange, z=pos.z+crange}
-                    local chests = minetest.find_nodes_in_area(cp1, cp2, {"civi_storage:chest", "civi_storage:chest_locked"})
+                    local chests = minetest.find_nodes_in_area(cp1, cp2, {
+                        "civi_storage:chest", "civi_storage:chest_locked",
+                        "civi_storage:chest_open", "civi_storage:chest_locked_open"
+                    })
                     if #chests > 0 then
                         table.sort(chests, function(a, b)
                             return vector.distance(pos, a) < vector.distance(pos, b)
                         end)
                         
                         for _, chest_pos in ipairs(chests) do
-                            local stand_spot = find_standing_spot(chest_pos)
-                            if stand_spot then
-                                self.target_chest = chest_pos
-                                self.stand_target = stand_spot
-                                self.path_timer = 3.1
-                                if not npc_quiet then minetest.chat_send_all("[NPC] Heading to chest at "..minetest.pos_to_string(chest_pos)) end
-                                return true
+                            local hash = minetest.hash_node_position(chest_pos)
+                            -- Blacklist pruefen: Truhe die nicht erreichbar war ueberspringen
+                            if self.blacklist[hash] and self.blacklist[hash] >= minetest.get_gametime() then
+                                -- skip: blacklisted
                             else
-                                self.blacklist[minetest.hash_node_position(chest_pos)] = minetest.get_gametime() + 300
+                                local stand_spot = find_standing_spot(chest_pos)
+                                if stand_spot then
+                                    self.target_chest = chest_pos
+                                    self.stand_target = stand_spot
+                                    self.path_timer = 3.1
+                                    if not npc_quiet then minetest.chat_send_all("[NPC] Heading to chest at "..minetest.pos_to_string(chest_pos)) end
+                                    return true
+                                else
+                                    self.blacklist[hash] = minetest.get_gametime() + 300
+                                end
                             end
                         end
                     end

@@ -204,31 +204,6 @@ function civi_storage.chest.register_chest(prefixed_name, d)
 end
 
 -- =========================================================
--- LBM: Initialize schematic-placed chests
--- =========================================================
--- When placed via schematic/decoration, on_construct is skipped.
--- This LBM ensures metadata and inventory are set up on load.
-minetest.register_lbm({
-    label = "Initialize chest metadata",
-    name = "civi_storage:initialize_chests_final",
-    nodenames = {"civi_storage:chest", "civi_storage:chest_locked"},
-    run_at_every_load = true, -- Check every time to be absolutely sure
-    action = function(pos, node)
-        local meta = minetest.get_meta(pos)
-        local inv = meta:get_inventory()
-        
-        -- Check if it's missing the main list OR the infotext (another sign of non-initialization)
-        if inv:get_size("main") == 0 or meta:get_string("infotext") == "" then
-            local def = minetest.registered_nodes[node.name]
-            if def and def.on_construct then
-                def.on_construct(pos)
-                minetest.log("action", "[civi_storage] LBM initialized chest at " .. minetest.pos_to_string(pos))
-            end
-        end
-    end,
-})
-
--- =========================================================
 -- 1. SINGLE CHEST
 -- =========================================================
 
